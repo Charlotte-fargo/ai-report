@@ -22,7 +22,7 @@ class DocGenerator:
         style.font.size = Pt(11)
 
         # --- 辅助函数：应用段落排版 (两端对齐 + 1.07倍行距) ---
-        def apply_paragraph_style(paragraph, align_justify=False):
+        def apply_paragraph_style(paragraph, align_justify=True):
             pf = paragraph.paragraph_format
             if align_justify:
                 pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
@@ -36,7 +36,7 @@ class DocGenerator:
         # --- 🔥 核心函数：智能解析并标红重点句 ---
         def add_paragraph_with_highlight(document, text):
             p = document.add_paragraph()
-            apply_paragraph_style(p, align_justify=False) # 正文两端对齐
+            apply_paragraph_style(p, align_justify=True) # 正文两端对齐
             
             # 使用正则切分：保留分隔符 **...**
             # 例如: "普通文字 **重点句** 普通文字" -> ['普通文字 ', '**重点句**', ' 普通文字']
@@ -68,7 +68,7 @@ class DocGenerator:
             val = header.get(key, "")
             if val:
                 p = doc.add_paragraph()
-                apply_paragraph_style(p, align_justify=False)
+                apply_paragraph_style(p, align_justify=True)
                 # 标签部分
                 run = p.add_run(f"#{label}# ")
                 run.font.bold = True
@@ -79,7 +79,7 @@ class DocGenerator:
         # --- 2. 正文 (Body Content) - 支持句内标红 ---
         # 写入 #Content# 标签
         p = doc.add_paragraph()
-        apply_paragraph_style(p, align_justify=False)
+        apply_paragraph_style(p, align_justify=True)
         run = p.add_run("#Content#")
         run.font.bold = True
         
@@ -105,7 +105,7 @@ class DocGenerator:
             for label, val in footer_items:
                 if val:
                     p = doc.add_paragraph(f"{label}: {val}")
-                    apply_paragraph_style(p, align_justify=False)
+                    apply_paragraph_style(p, align_justify=True)
                     for run in p.runs:
                         run.font.bold = True
                         run.font.color.rgb = CUSTOM_RED # 🔴 底部也用同一个红色
@@ -138,3 +138,4 @@ class DocGenerator:
         except Exception as e:
 
             print(f"❌ 保存失败: {e}")
+
