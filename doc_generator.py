@@ -36,7 +36,7 @@ class DocGenerator:
         # --- 🔥 核心函数：智能解析并标红重点句 ---
         def add_paragraph_with_highlight(document, text):
             p = document.add_paragraph()
-            apply_paragraph_style(p, align_justify=True) # 正文两端对齐
+            apply_paragraph_style(p, align_justify=False) # 正文两端对齐
             
             # 使用正则切分：保留分隔符 **...**
             # 例如: "普通文字 **重点句** 普通文字" -> ['普通文字 ', '**重点句**', ' 普通文字']
@@ -136,4 +136,5 @@ class DocGenerator:
             doc.save(output_path)
             print(f"✅ 文档生成成功 (包含标红重点): {output_path}")
         except Exception as e:
+
             print(f"❌ 保存失败: {e}")
