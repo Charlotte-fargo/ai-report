@@ -41,14 +41,15 @@ The user has defined this report category as: **{category}**.
 1.  **Extract Meta Data:** Institution Name, Analyst Name.
 2.  **Extract Core Content based on Category:**
     -   **Since this is {category}:**
-        -   If **Equity**: Extract Ticker, Company Name, Rating, Target Price.
+        -   If **Equity**: Extract Ticker, Company Name, Rating, Target Price， Previous Target Price (if mentioned).
         -   If **Macro/FX&Commodity**: Ignore Ticker/Rating/TP. Focus on the main economic indicator or asset class.
     -   Extract Thesis Summary & Key Drivers/Catalysts.
+     Note the Currency (HKD, USD, RMB, etc.).
 
 # Output Format (JSON)
 {{
   "meta": {{ "institution": "", "analyst": "" }},
-  "stock": {{ "ticker": "", "name": "", "rating": "", "target_price": "" }},
+  "stock": {{ "ticker": "", "name": "", "rating": "", "target_price": ""， "target_price_previous": "","currency": " }},
   "content_raw": {{
     "thesis_summary": "...",
     "drivers": ["...", "..."],
@@ -61,15 +62,28 @@ The user has defined this report category as: **{category}**.
 STEP_2_PROMPT_TEMPLATE = """
 # Role
 You are a Strict Financial Editor. Reformat extracted data into a specific JSON schema.
-body_content should between 400-500 words, and including 4-5 paragraphs,do not use the bank to refer our Bank,just use they or their.
+body_content should between 400-500 words, and including 4-5 paragraphs
 # USER INSTRUCTION
 The report category is defined as: **{category}**.
-
+ **Price Target Format:**
+    -   MUST include Currency (HKD, USD, RMB).
+    -   If a **Previous Target** exists, put it in parentheses: `(Previous: XX)`.
+    -   If both HKD and USD targets exist, join with `/`.
 # STRICT RULES
 1.  **Bank Acronyms:** Use Acronyms (JPM, GS, MS, DB, CITICS) in `summary` and `body_content`.
 2.  **Grammar:** Treat acronyms as **PLURAL** (e.g., "JPM **expect**").
-3.  **Red Highlighting (CRITICAL):**
-    -   In `body_content`, identify the most important sentence in EACH paragraph and wrap it with double asterisks `**`.
+# Red Highlighting Rule (CRITICAL)
+In `body_content`, identify the core viewpoint in EACH paragraph and wrap it with double asterisks `**`.
+**THE HIGHLIGHTED SENTENCE MUST FOLLOW THIS EXACT PATTERN:**
+* **Pattern:** `**[Acronym] [plural verb] [key insight]...**`
+* **Good Examples:**
+    * `**JPM maintain their Overweight rating due to strong cash flow.**`
+    * `**GS estimate a 20% upside in FY26 earnings.**`
+    * `**DB highlight that the valuation is attractive.**`
+* **Bad Examples (DO NOT DO THIS):**
+    * `**They expect...**` (Do not use 'They' inside `**`)
+    * `**The revenue will grow...**` (Must start with the Bank Name)
+    * `**JPM expects...**` (Must be plural verb)
 
 # JSON Structure Rules based on Category: **{category}**
 -   **If {category} == 'Equity':** You MUST fill in `stock`, `rating`, `price_target`.
@@ -83,9 +97,9 @@ The report category is defined as: **{category}**.
     "title": "[Full Bank Name]: [Title of the Report]should including stock(ticker.country for example,China Mobile(941.HK) )", 
     "summary": "[Acronym] [plural verb]... (max 60 words)",
     "tags": "Generate 3 relevant Chinese tags separated by `/` (e.g., 消费/港股/电子)",
-    "stock": "Ticker OR Empty",
+    "stock": "Ticker string (e.g. 9988.HK / BABA.US) OR Empty",
     "rating": "Rating OR Empty",
-    "price_target": "Price OR Empty"
+    "price_target": "Formatted Price String (e.g. HKD100 (Previous Price Target: HKD80))"
   }},
   "body_content": [
     "Paragraph 1: Highlight key sentence with `**`.",
@@ -95,9 +109,9 @@ The report category is defined as: **{category}**.
     the key sentence should be their viewpoints, not too loog for key sentences
   ],
   "footer_info": {{
-    "stock": "Ticker OR Empty",
+    "stock": "Ticker string (e.g. 9988.HK / BABA.US) OR Empty",
     "rating": "Rating OR Empty",
-    "price_target": "Price OR Empty"
+    "price_target": "Formatted Price String (e.g. HKD100 (Previous Price Target: HKD80))"
   }}
 }}
 """
@@ -298,6 +312,7 @@ if generate_btn and uploaded_pdf:
 
 elif generate_btn and not uploaded_pdf:
     st.warning("请先上传 PDF 文件！")
+
 
 
 
