@@ -61,7 +61,7 @@ The user has defined this report category as: **{category}**.
 STEP_2_PROMPT_TEMPLATE = """
 # Role
 You are a Strict Financial Editor. Reformat extracted data into a specific JSON schema.
-body_content should between 400-500 words, and including 4-5 paragraphs
+body_content should between 400-500 words, and including 4-5 paragraphs,do not use the bank to refer our Bank,just use they or their.
 # USER INSTRUCTION
 The report category is defined as: **{category}**.
 
@@ -92,7 +92,7 @@ The report category is defined as: **{category}**.
     "Paragraph 2: Highlight key sentence with `**`.",
     ...
     ...
-    the key sentence should be the bank viewpoints, not too loog for key sentences
+    the key sentence should be their viewpoints, not too loog for key sentences
   ],
   "footer_info": {{
     "stock": "Ticker OR Empty",
@@ -298,6 +298,7 @@ if generate_btn and uploaded_pdf:
 
 elif generate_btn and not uploaded_pdf:
     st.warning("请先上传 PDF 文件！")
+
 
 
 
