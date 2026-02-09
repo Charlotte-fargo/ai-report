@@ -42,7 +42,7 @@ The user has defined this report category as: **{category}**.
 2.  **Extract Core Content based on Category:**
     -   **Since this is {category}:**
         -   If **Equity**: Extract Ticker, Company Name, Rating, Target Price.
-        -   If **Macro/FX/Commodity**: Ignore Ticker/Rating/TP. Focus on the main economic indicator or asset class.
+        -   If **Macro/FX&Commodity**: Ignore Ticker/Rating/TP. Focus on the main economic indicator or asset class.
     -   Extract Thesis Summary & Key Drivers/Catalysts.
 
 # Output Format (JSON)
@@ -201,7 +201,7 @@ with st.sidebar:
     user_name = st.text_input("用户名称 (User Name)", value="Charlotte")
     report_category = st.selectbox(
         "报告类别 (Category)",
-        ("Equity", "Macro", "FX", "Commodity"),
+        ("Equity", "Macro", "FX&Commodity"),
         index=0
     )
     st.info(f"当前模式: {report_category}\n(Equity 会包含股价评级，其他则隐藏)")
@@ -297,4 +297,5 @@ if generate_btn and uploaded_pdf:
 
 elif generate_btn and not uploaded_pdf:
     st.warning("请先上传 PDF 文件！")
+
 
