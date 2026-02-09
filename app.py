@@ -248,7 +248,6 @@ if generate_btn and uploaded_pdf:
         today_str = datetime.now().strftime("%Y/%m/%d")
         if "header_info" in final_json:
             final_json["header_info"]["date"] = today_str
-            final_json["header_info"]["category"] = report_category
 
         # E. 生成文件名
         # 获取原文件名 (去除后缀)
@@ -298,3 +297,4 @@ if generate_btn and uploaded_pdf:
 
 elif generate_btn and not uploaded_pdf:
     st.warning("请先上传 PDF 文件！")
+
