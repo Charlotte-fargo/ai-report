@@ -92,7 +92,7 @@ The report category is defined as: **{category}**.
     "Paragraph 2: Highlight key sentence with `**`.",
     ...
     ...
-    Highlight the key sentence words should not exceed 20 words.
+    Highlight the key sentence show the bank viewpoint, not too loog for key sentences
   ],
   "footer_info": {{
     "stock": "Ticker OR Empty",
@@ -298,6 +298,7 @@ if generate_btn and uploaded_pdf:
 
 elif generate_btn and not uploaded_pdf:
     st.warning("请先上传 PDF 文件！")
+
 
 
 
