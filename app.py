@@ -67,11 +67,13 @@ body_content should between 400-500 words, and including 4-5 paragraphs
 The report category is defined as: **{category}**.
  **Price Target Format:**
     -   MUST include Currency (HKD, USD, RMB).
-    -   If a **Previous Target** exists, put it in parentheses: `(Previous: XX)`.
+    -   Nust ensur If a **Previous Target** exists, put it in parentheses: `(Previous Price Target: XX)`.if not do not show the Previous Price Target
     -   If both HKD and USD targets exist, join with `/`.
 # STRICT RULES
 1.  **Bank Acronyms:** Use Acronyms (JPM, GS, MS, DB, CITICS) in `summary` and `body_content`.
 2.  **Grammar:** Treat acronyms as **PLURAL** (e.g., "JPM **expect**").
+3. do not show the full bank name in body_content
+
 # Red Highlighting Rule (CRITICAL)
 In `body_content`, identify the core viewpoint in EACH paragraph and wrap it with double asterisks `**`.
 **THE HIGHLIGHTED SENTENCE MUST FOLLOW THIS EXACT PATTERN:**
@@ -312,6 +314,7 @@ if generate_btn and uploaded_pdf:
 
 elif generate_btn and not uploaded_pdf:
     st.warning("请先上传 PDF 文件！")
+
 
 
 
