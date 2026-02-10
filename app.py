@@ -259,7 +259,7 @@ if generate_btn and uploaded_pdf:
             generator = DocGenerator()
             output_docx_path = f"temp_{final_filename}" # 临时保存
             
-            generator.create_styled_doc(final_json, output_docx_path, img_path=temp_img_path)
+            generator.create_styled_doc(final_json, output_docx_path, img_path=temp_img_path，report_category=report_category)
             
         # H. 完成
             status_box.update(label="✅ 生成成功！", state="complete", expanded=False)
@@ -284,6 +284,7 @@ if generate_btn and uploaded_pdf:
 
 elif generate_btn and not uploaded_pdf:
     st.warning("请先上传 PDF 文件！")
+
 
 
 
