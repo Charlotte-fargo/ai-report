@@ -115,8 +115,12 @@ class DocGenerator:
         else :
             run = p.add_run("#Content#")
             run.font.bold = True
-            run = p.add_run("Wall Street Highlights-{report_category}")
-            run.font.bold = True
+          # 2. 创建一个新段落，实现“下一行”的效果
+            p_next = doc.add_paragraph()
+            apply_paragraph_style(p_next)
+            # 写入 Wall Street Highlights 内容
+            run_highlight = p_next.add_run(f"Wall Street Highlights-{report_category}")
+            run_highlight.font.bold = True
             
             
         
@@ -153,5 +157,6 @@ class DocGenerator:
             run.add_picture(img_path, width=Inches(6.0))
 
         doc.save(output_path)
+
 
 
