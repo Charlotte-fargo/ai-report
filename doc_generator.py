@@ -1,72 +1,102 @@
 import re
+import os
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches 
 from docx.oxml.ns import qn
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
-import os
-# 🔥 1. 设置您指定的红色 (RGB: 192, 0, 0)
+
+# 指定红色 (RGB: 192, 0, 0)
 CUSTOM_RED = RGBColor(192, 0, 0) 
 
 class DocGenerator:
-    def create_styled_doc(self, json_data, output_path="Output.docx",img_path = None):
+    def create_styled_doc(self, json_data, output_path="Output.docx", img_path=None, report_category=None):
         if not json_data:
             print("❌ 数据为空，无法生成")
             return
 
         doc = Document()
-        
+
         # --- 基础字体设置 ---
         style = doc.styles['Normal']
         style.font.name = 'DengXian'
-        style.element.rPr.rFonts.set(qn('w:eastAsia'), '微软雅黑') # 中文用微软雅黑
-        style.font.size = Pt(11)
+        style.element.rPr.rFonts.set(qn('w:eastAsia'), '等线 (中文正文)') 
+        
+        # 🔥 根据截图要求：如果是 Weekly Fund Flow，字号设为 14 
+        if report_category == "Weekly Fund Flow":
+            style.font.size = Pt(14)
+        else:
+            style.font.size = Pt(11)
 
-        # --- 辅助函数：应用段落排版 (两端对齐 + 1.07倍行距) ---
+        # --- 辅助函数：段落排版 (根据截图优化) ---
         def apply_paragraph_style(paragraph, align_justify=True):
             pf = paragraph.paragraph_format
-            if align_justify:
-                pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY if align_justify else WD_ALIGN_PARAGRAPH.LEFT
+            
+            # 🔥 匹配截图设置:
+            if report_category == "Weekly Fund Flow":
+                pf.space_before = Pt(0)   # 段前: 0 磅
+                pf.space_after = Pt(8)    # 段后: 8 磅
+                pf.line_spacing = 1.08    # 设置值: 1.08
             else:
-                pf.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            pf.space_before = Pt(12)
-            pf.space_after = Pt(0)
-            pf.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
-            pf.line_spacing = 1.07
+                pf.space_before = Pt(12)
+                pf.space_after = Pt(0)
+                pf.line_spacing = 1.07
+                
+            pf.line_spacing_rule = WD_LINE_SPACING.MULTIPLE # 多倍行距
 
-        # --- 🔥 核心函数：智能解析并标红重点句 ---
+        # --- 核心函数：标红重点句 ---
         def add_paragraph_with_highlight(document, text):
             p = document.add_paragraph()
-            apply_paragraph_style(p, align_justify=True) # 正文两端对齐
-            
-            # 使用正则切分：保留分隔符 **...**
-            # 例如: "普通文字 **重点句** 普通文字" -> ['普通文字 ', '**重点句**', ' 普通文字']
+            apply_paragraph_style(p)
             segments = re.split(r'(\*\*.*?\*\*)', str(text))
-            
             for seg in segments:
                 if not seg: continue
-                
-                # 检查是否是被 ** 包裹的重点句
                 if seg.startswith('**') and seg.endswith('**'):
-                    clean_text = seg[2:-2] # 去掉星号
+                    clean_text = seg[2:-2]
                     run = p.add_run(clean_text)
-                    run.font.color.rgb = CUSTOM_RED # 🔴 变为指定的红色
-                    # run.font.bold = True # 如果希望红字同时加粗，请取消此行注释
+                    run.font.color.rgb = CUSTOM_RED
                 else:
-                    # 普通文字：黑色
                     run = p.add_run(seg)
                     run.font.color.rgb = RGBColor(0, 0, 0)
 
         # --- 1. 顶部信息 (Header) ---
         header = json_data.get("header_info", {})
-        header_mapping = [
-            ("Category", "category"), ("Date", "date"), ("Title", "title"),
-            ("Summary", "summary"), ("Tags", "tags"), ("Stock", "stock"),
-            ("Stock Rating", "rating"), ("12m Price Target", "price_target")
+        fund_flow_mapping = [
+            ("Category", ["Category", "category"]),
+            ("Date", ["Date", "date"]),
+            ("Title", ["Title", "title"]),
+            ("Summary", ["Summary", "summary"]),
+            ("From", ["From", "from"]),
+            ("Tags", ["Tags", "tags"]),
+            ("Recommend Expire Time", ["Recommend Expire Time", "expire_time"]),
+            ("Language", ["Language", "language"]),
+            ("Stock", ["Stock", "stock"]),
+            ("Stock Rating", ["Stock Rating", "rating"]),
+            ("12m Price Target", ["12m Price Target", "price_target"]),
+            ("Related Stock List", ["Related Stock List", "related_stocks"]),
+            ("Related Stock Rating", ["Related Stock Rating", "related_rating"])
         ]
 
-        for label, key in header_mapping:
-            val = header.get(key, "")
-            if val:
+
+        for label, keys in fund_flow_mapping:
+            val = ""
+            for k in keys:
+                if k in header:
+                    val = header[k]
+                    break
+            
+            # Weekly Fund Flow 模式强制显示所有标签 
+            if report_category == "Weekly Fund Flow":
+                p = doc.add_paragraph()
+                apply_paragraph_style(p)
+                run = p.add_run(f"#{label}# ")
+                run.font.bold = False
+                if val:
+                    run_val = p.add_run(str(val))
+                    run_val.font.bold = False
+                   # --- 2. 正文 (Content) ---
+            
+            elif val:
                 p = doc.add_paragraph()
                 apply_paragraph_style(p, align_justify=True)
                 # 标签部分
@@ -75,67 +105,32 @@ class DocGenerator:
                 # 数值部分
                 run_val = p.add_run(str(val))
                 run_val.font.bold = True # Header部分全部加粗
-
-        # --- 2. 正文 (Body Content) - 支持句内标红 ---
-        # 写入 #Content# 标签
+                   # --- 2. 正文 (Content) ---
+                
         p = doc.add_paragraph()
-        apply_paragraph_style(p, align_justify=True)
-        run = p.add_run("#Content#")
-        run.font.bold = True
+        apply_paragraph_style(p)
+        if report_category == "Weekly Fund Flow":      
+            run = p.add_run("#Content#")
+            run.font.bold = False
+        else :
+            run = p.add_run("#Content#")
+            run.font.bold = True
+            
         
-        body_list = json_data.get("body_content", [])
-        
-        # 容错处理：如果 AI 返回的是字符串而不是列表
-        if isinstance(body_list, str):
-            body_list = [x for x in body_list.split('\n') if x.strip()]
+        body_content = json_data.get("body_content", [])
+        # 兼容处理单字符串或列表
+        body_list = [body_content] if isinstance(body_content, str) else body_content
 
-        if isinstance(body_list, list):
-            for paragraph_text in body_list:
-                # 🔥 调用高亮函数写入每一段
+        for paragraph_text in body_list:
+            if paragraph_text.strip():
                 add_paragraph_with_highlight(doc, paragraph_text)
 
-        # --- 3. 底部信息 (Footer) - 全红 ---
-        footer = json_data.get("footer_info", {})
-        if footer:
-            footer_items = [
-                ("Stock", footer.get("stock", "")),
-                ("Stock Rating", footer.get("rating", "")),
-                ("12m Price Target", footer.get("price_target", ""))
-            ]
-            for label, val in footer_items:
-                if val:
-                    p = doc.add_paragraph(f"{label}: {val}")
-                    apply_paragraph_style(p, align_justify=True)
-                    for run in p.runs:
-                        run.font.bold = True
-                        run.font.color.rgb = CUSTOM_RED # 🔴 底部也用同一个红色
-                    # 🔥🔥🔥 [新增功能] 4. 插入文末图片 🔥🔥🔥
-        # ==========================================
-        # 检查：用户是否提供了路径，且路径下的文件是否真的存在
+        # --- 3. 插入图片 ---
         if img_path and os.path.exists(img_path):
-            print(f"🖼️ 检测到图片，正在插入文末: {img_path}")
-            
-            # 创建一个新段落用于放图片
             img_p = doc.add_paragraph()
-            # 关键：设置居中对齐
             img_p.alignment = WD_ALIGN_PARAGRAPH.CENTER 
-            # 增加一点段前距，让图片和上面的文字拉开距离
             img_p.paragraph_format.space_before = Pt(24) 
-            
             run = img_p.add_run()
-            # 插入图片，并限制宽度为 6 英寸（根据需要调整），高度自动按比例缩放
             run.add_picture(img_path, width=Inches(6.0))
 
-        try:
-            doc.save(output_path)
-            print(f"✅ 文档已生成: {output_path}")
-        except Exception as e:
-            print(f"❌ 保存失败: {e}")
-
-        try:
-            doc.save(output_path)
-            print(f"✅ 文档生成成功 (包含标红重点): {output_path}")
-        except Exception as e:
-
-            print(f"❌ 保存失败: {e}")
-
+        doc.save(output_path)
