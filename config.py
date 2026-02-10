@@ -131,7 +131,7 @@ The user has defined this report category as: **{category}**.
 1.  **Extract Meta Data:** Institution Name, Analyst Name.
 2.  **Extract Core Content based on Category:**
     -   **Since this is {category}:**
-        -   If **Equity**: Extract Ticker（must be the US or HK or if both given please give all), Company Name, Rating, Target Price， Previous Target Price (if mentioned).
+        -   If **Equity**: Extract Ticker（must be the US or HK or if both given please give all), Company Name, Rating, Target Price， Previous Target Price (if obviously mentioned).
         -   If **Macro/FX&Commodity**: Ignore Ticker/Rating/TP. Focus on the main economic indicator or asset class.
     -   Extract Thesis Summary & Key Drivers/Catalysts.
      Note the Currency (HKD, USD, RMB, etc.).
@@ -191,7 +191,7 @@ In `body_content`, identify the core viewpoint in EACH paragraph and wrap it wit
     "tags": "Generate 3 relevant Chinese tags separated by `/` (e.g., 消费/港股/电子)",
     "stock": "Ticker string (e.g. 9988.HK / BABA.US) OR Empty",
     "rating": "Rating OR Empty",
-    "price_target": "Formatted Price String (e.g. HKD100.00 (Previous Price Target: HKD80.00)),keep two decimals if previous price not mention, you do not need to show the Previous"，
+    "price_target": "Formatted Price String (e.g. HKD100.00 (Previous Price Target: HKD80.00)),keep two decimals if previous price not mention in report content, you do not need to show the Previous"，
     "category": "Wall Street Highlights-{category}"
   }},
   "body_content": [
@@ -208,6 +208,7 @@ In `body_content`, identify the core viewpoint in EACH paragraph and wrap it wit
   }}
 }}
 """
+
 
 
 
