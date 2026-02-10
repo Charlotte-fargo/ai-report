@@ -106,30 +106,6 @@ class DocGenerator:
                 run_val = p.add_run(str(val))
                 run_val.font.bold = True # Header部分全部加粗
                    # --- 2. 正文 (Content) ---
-        display_name = report_category if report_category else "Market"
-        p = doc.add_paragraph()
-        apply_paragraph_style(p)
-        if report_category == "Weekly Fund Flow":      
-            run = p.add_run("#Content#")
-            run.font.bold = False
-        else :
-            run = p.add_run("#Content#")
-            run.font.bold = True
-          # 2. 创建一个新段落，实现“下一行”的效果
-            p_next = doc.add_paragraph()
-            apply_paragraph_style(p_next)
-            # 写入 Wall Street Highlights 内容
-            run_highlight = p_next.add_run(f"Wall Street Highlights-{display_name}")
-            run_highlight.font.bold = True
-        print(report_category)
-        if report_category:
-            clean_category = report_category
-        else:
-            # 尝试从 JSON 获取
-            json_cat_raw = header.get("category", "")
-            if json_cat_raw:
-                # 无论 JSON 里是 "Equity" 还是 "Wall Street Highlights-Equity"，我们都清洗一下
-                clean_category = json_cat_raw.replace("Wall Street Highlights-", "").strip()
 
         # 生成显示的文字
         highlight_title = f"Wall Street Highlights-{clean_category}"
@@ -187,6 +163,7 @@ class DocGenerator:
             run.add_picture(img_path, width=Inches(6.0))
 
         doc.save(output_path)
+
 
 
 
