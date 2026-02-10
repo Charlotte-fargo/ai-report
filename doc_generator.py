@@ -124,6 +124,22 @@ class DocGenerator:
         for paragraph_text in body_list:
             if paragraph_text.strip():
                 add_paragraph_with_highlight(doc, paragraph_text)
+        if report_category != "Weekly Fund Flow":
+            # --- 3. 底部信息 (Footer) - 全红 ---
+            footer = json_data.get("footer_info", {})
+            if footer:
+                footer_items = [
+                    ("Stock", footer.get("stock", "")),
+                    ("Stock Rating", footer.get("rating", "")),
+                    ("12m Price Target", footer.get("price_target", ""))
+                ]
+                for label, val in footer_items:
+                    if val:
+                        p = doc.add_paragraph(f"{label}: {val}")
+                        apply_paragraph_style(p, align_justify=False)
+                        for run in p.runs:
+                            run.font.bold = True
+                            run.font.color.rgb = CUSTOM_RED # 🔴 底部也用同一个红色
 
         # --- 3. 插入图片 ---
         if img_path and os.path.exists(img_path):
@@ -134,3 +150,4 @@ class DocGenerator:
             run.add_picture(img_path, width=Inches(6.0))
 
         doc.save(output_path)
+
