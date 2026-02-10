@@ -121,7 +121,8 @@ class DocGenerator:
             # 写入 Wall Street Highlights 内容
             run_highlight = p_next.add_run(f"Wall Street Highlights-{display_name}")
             run_highlight.font.bold = True
-         if report_category:
+        print(report_category)
+        if report_category:
             clean_category = report_category
         else:
             # 尝试从 JSON 获取
@@ -186,6 +187,7 @@ class DocGenerator:
             run.add_picture(img_path, width=Inches(6.0))
 
         doc.save(output_path)
+
 
 
 
