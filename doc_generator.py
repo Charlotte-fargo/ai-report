@@ -106,7 +106,7 @@ class DocGenerator:
                 run_val = p.add_run(str(val))
                 run_val.font.bold = True # Header部分全部加粗
                    # --- 2. 正文 (Content) ---
-                
+        display_name = report_category if report_category else "Market"
         p = doc.add_paragraph()
         apply_paragraph_style(p)
         if report_category == "Weekly Fund Flow":      
@@ -119,7 +119,7 @@ class DocGenerator:
             p_next = doc.add_paragraph()
             apply_paragraph_style(p_next)
             # 写入 Wall Street Highlights 内容
-            run_highlight = p_next.add_run(f"Wall Street Highlights-{report_category}")
+            run_highlight = p_next.add_run(f"Wall Street Highlights-{display_name}")
             run_highlight.font.bold = True
             
             
@@ -157,6 +157,7 @@ class DocGenerator:
             run.add_picture(img_path, width=Inches(6.0))
 
         doc.save(output_path)
+
 
 
 
