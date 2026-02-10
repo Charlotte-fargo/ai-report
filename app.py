@@ -245,11 +245,13 @@ if generate_btn and uploaded_pdf:
             final_filename = final_filename.replace(" ", "_").replace("/", "-") # 清洗非法字符
 
             # F. 处理图片
+            # 手动图片处理
             if uploaded_image_manual:
-                img_temp_path = f"temp_{uploaded_image_manual.name}"
-                with open(img_temp_path, "wb") as f:
+                temp_img_path = f"temp_{uploaded_image_manual.name}"
+                with open(temp_img_path, "wb") as f:
                     f.write(uploaded_image_manual.getbuffer())
-                status_box.write(f"🖼️ 已加载图片: {uploaded_image_manual.name}")
+                extracted_images = [temp_img_path] # 放入列表
+                status_box.write(f"🖼️ 已加载封面图: {uploaded_image_manual.name}")
 
             # G. 生成 Word
             status_box.write("💾 正在生成 Word 文档...")
@@ -281,6 +283,7 @@ if generate_btn and uploaded_pdf:
 
 elif generate_btn and not uploaded_pdf:
     st.warning("请先上传 PDF 文件！")
+
 
 
 
