@@ -246,6 +246,7 @@ if generate_btn and uploaded_pdf:
 
             # F. 处理图片
             # 手动图片处理
+            temp_img_path = None
             if uploaded_image_manual:
                 temp_img_path = f"temp_{uploaded_image_manual.name}"
                 with open(temp_img_path, "wb") as f:
@@ -258,7 +259,7 @@ if generate_btn and uploaded_pdf:
             generator = DocGenerator()
             output_docx_path = f"temp_{final_filename}" # 临时保存
             
-            generator.create_styled_doc(final_json, output_docx_path, img_path=img_temp_path)
+            generator.create_styled_doc(final_json, output_docx_path, img_path=temp_img_path)
             
         # H. 完成
             status_box.update(label="✅ 生成成功！", state="complete", expanded=False)
@@ -275,7 +276,7 @@ if generate_btn and uploaded_pdf:
             
         # 清理临时文件
         if os.path.exists(output_docx_path): os.remove(output_docx_path)
-        if img_temp_path and os.path.exists(img_temp_path): os.remove(img_temp_path)
+        if temp_img_path and os.path.exists(temp_img_path): os.remove(temp_img_path)
 
     except Exception as e:
         status_box.update(label="❌ 发生未知错误", state="error")
@@ -283,6 +284,7 @@ if generate_btn and uploaded_pdf:
 
 elif generate_btn and not uploaded_pdf:
     st.warning("请先上传 PDF 文件！")
+
 
 
 
