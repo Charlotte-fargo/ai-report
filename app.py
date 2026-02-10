@@ -9,6 +9,17 @@ from datetime import datetime
 import config  # 引用你现有的配置文件
 from doc_generator import DocGenerator
 
+# --- WSH(Wall Street Highlight) ---
+# 步骤 1: 分析师
+STEP_1_PROMPT_TEMPLATE = config.STEP_1_PROMPT_TEMPLATE
+
+# 步骤 2: 编辑
+STEP_2_PROMPT_TEMPLATE = config.STEP_2_PROMPT_TEMPLATE
+
+# --- 资金流周报 (Weekly Fund Flow) ---
+FUND_FLOW_STEP1 = config.FUND_FLOW_STEP1
+FUND_FLOW_STEP2 = config.FUND_FLOW_STEP2
+
 def get_bank_acronym(full_name):
     """
     根据 Step 1 提取的全名，返回对应的缩写
@@ -29,94 +40,6 @@ def get_bank_acronym(full_name):
     # 如果没匹配到，就取前单词作为缩写，去除非法字符
     clean_name = re.sub(r'[^\w]', '', full_name.split()[0])
     return clean_name
-# 步骤 1: 分析师
-STEP_1_PROMPT_TEMPLATE = """
-# Role
-You are a Senior Financial Analyst. Extract raw data from the provided OCR text.
-
-# USER INSTRUCTION
-The user has defined this report category as: **{category}**.
-
-# Task
-1.  **Extract Meta Data:** Institution Name, Analyst Name.
-2.  **Extract Core Content based on Category:**
-    -   **Since this is {category}:**
-        -   If **Equity**: Extract Ticker, Company Name, Rating, Target Price， Previous Target Price (if mentioned).
-        -   If **Macro/FX&Commodity**: Ignore Ticker/Rating/TP. Focus on the main economic indicator or asset class.
-    -   Extract Thesis Summary & Key Drivers/Catalysts.
-     Note the Currency (HKD, USD, RMB, etc.).
-
-# Output Format (JSON)
-{{
-  "meta": {{ "institution": "", "analyst": "" }},
-  "stock": {{ "ticker": "", "name": "", "rating": "", "target_price": ""， "target_price_previous": "","currency": " }},
-  "content_raw": {{
-    "thesis_summary": "...",
-    "drivers": ["...", "..."],
-    "financial_outlook": "..."
-  }}
-}}
-"""
-
-# 步骤 2: 编辑
-STEP_2_PROMPT_TEMPLATE = """
-# Role
-You are a Strict Financial Editor. Reformat extracted data into a specific JSON schema.
-body_content should between 400-500 words, and including 4-5 paragraphs
-# USER INSTRUCTION
-The report category is defined as: **{category}**.
- **Price Target Format:**
-    -   MUST include Currency (HKD, USD, RMB).
-    -   Nust ensur If a **Previous Target** exists, put it in parentheses: `(Previous Price Target: XX.00)`.if not do not show the Previous Price Target,keep two decimals
-    -   If both HKD and USD targets exist, join with `/`.
-# STRICT RULES
-1.  **Bank Acronyms:** Use Acronyms (JPM, GS, MS, DB, CITICS) in `summary` and `body_content`.
-2.  **Grammar:** Treat acronyms as **PLURAL** (e.g., "JPM **expect**").
-3. do not show the full bank name in body_content
-
-# Red Highlighting Rule (CRITICAL)
-In `body_content`, identify the core viewpoint in EACH paragraph and wrap it with double asterisks `**`.
-**THE HIGHLIGHTED SENTENCE MUST FOLLOW THIS EXACT PATTERN:**
-* **Pattern:** `**[Acronym] [plural verb] [key insight]...**`
-* **Good Examples:**
-    * `**JPM maintain their Overweight rating due to strong cash flow.**`
-    * `**GS estimate a 20% upside in FY26 earnings.**`
-    * `**DB highlight that the valuation is attractive.**`
-* **Bad Examples (DO NOT DO THIS):**
-    * `**They expect...**` (Do not use 'They' inside `**`)
-    * `**The revenue will grow...**` (Must start with the Bank Name)
-    * `**JPM expects...**` (Must be plural verb)
-
-# JSON Structure Rules based on Category: **{category}**
--   **If {category} == 'Equity':** You MUST fill in `stock`, `rating`, `price_target`.
--   **If {category} != 'Equity':** You MUST leave `stock`, `rating`, `price_target` as **EMPTY STRINGS** ("").
-
-# Output Schema (JSON Only)
-{{
-  "header_info": {{
-    "category": "Wall Street Highlights-{category}",
-    "date": "YYYY/MM/DD",
-    "title": "[Full Bank Name]: [Title of the Report]should including stock(ticker.country for example,China Mobile(941.HK) )", 
-    "summary": "[Acronym] [plural verb]... (max 60 words)",
-    "tags": "Generate 3 relevant Chinese tags separated by `/` (e.g., 消费/港股/电子)",
-    "stock": "Ticker string (e.g. 9988.HK / BABA.US) OR Empty",
-    "rating": "Rating OR Empty",
-    "price_target": "Formatted Price String (e.g. HKD100.00 (Previous Price Target: HKD80.00)),keep two decimals"
-  }},
-  "body_content": [
-    "Paragraph 1: Highlight key sentence with `**`.",
-    "Paragraph 2: Highlight key sentence with `**`.",
-    ...
-    ...
-    the key sentence should be their viewpoints, not too loog for key sentences
-  ],
-  "footer_info": {{
-    "stock": "Ticker string (e.g. 9988.HK / BABA.US) OR Empty",
-    "rating": "Rating OR Empty",
-    "price_target": "Formatted Price String (e.g. HKD100.00(Previous Price Target: HKD80.00)),keep two decimals"
-  }}
-}}
-"""
 
 # ================= 功能函数 =================
 
@@ -218,14 +141,19 @@ with st.sidebar:
     user_name = st.text_input("用户名称 (User Name)", value="Charlotte")
     report_category = st.selectbox(
         "报告类别 (Category)",
-        ("Equity", "Macro", "FX&Commodity"),
+        ("Equity", "Macro", "FX&Commodity","Weekly Fund Flow"),
         index=0
     )
     st.info(f"当前模式: {report_category}\n(Equity 会包含股价评级，其他则隐藏)")
 
 # --- 主界面 ---
 uploaded_pdf = st.file_uploader("上传 PDF 研报", type=["pdf"])
-uploaded_image = st.file_uploader("上传图表 (可选，将放在文末)", type=["png", "jpg", "jpeg"])
+# 逻辑分支：图片上传控件
+uploaded_image_manual = None
+if report_category == "Weekly Fund Flow":
+    st.caption("✅ 资金流模式。")
+else:
+    uploaded_image_manual = st.file_uploader("上传封面图 (可选)", type=["png", "jpg", "jpeg"])
 
 generate_btn = st.button("🚀 开始生成 Word 报告", type="primary")
 
@@ -241,58 +169,97 @@ if generate_btn and uploaded_pdf:
         if not pdf_text:
             status_box.update(label="❌ PDF 读取失败或为空", state="error")
             st.stop()
+        if report_category == "Weekly Fund Flow":
+            # === A. 资金流模式 ===
+            status_box.write("🔍 Step 1: 提取资金流数据...")
+            raw_data = call_ai_and_wait_generic(FUND_FLOW_STEP1, pdf_text)
+            if not raw_data: 
+                status_box.update(label="❌ Step 1 失败", state="error")
+                st.stop()
+            
+            status_box.write("✍️ Step 2: 执行【市场动态】翻译标准...")
+            final_json = call_ai_and_wait_generic(FUND_FLOW_STEP2, json.dumps(raw_data))
+            print(final_json)
+            if report_category == "Weekly Fund Flow":
+            # 强制二次确认：除了指定的三个字段，其余全部清空或保持原样
+                allowed_keys = ["title", "summary", "body_content", "date", "from", "language"]
+                header = final_json.get("header_info", {})
+                for key in header.keys():
+                    if key.lower() not in allowed_keys:
+                        header[key] = "" # 确保不属于 fund flow 的字段绝对为空
+            
+            # 构造文件名 (资金流通常用机构名或固定格式)
+            bank_acronym = "GS" # 默认为高盛，或者从 raw_data 里提取
+            final_filename = f"WeeklyFlow_{user_name}_{bank_acronym}_{datetime.now().strftime('%Y%m%d')}.docx"
+            if not final_json:
+                status_box.update(label="❌ AI 生成失败", state="error")
+                st.stop()
 
-        # B. AI Step 1
-        status_box.write("🧠 AI Step 1: 正在提取关键数据...")
-        prompt_1 = STEP_1_PROMPT_TEMPLATE.format(category=report_category)
-        raw_data = call_ai_and_wait_generic(prompt_1, pdf_text)
-        
-        if not raw_data:
-            status_box.update(label="❌ 第一步 AI 分析失败", state="error")
-            st.stop()
-        
-        # C. AI Step 2
-        status_box.write("✍️ AI Step 2: 正在进行格式化、缩写和标红...")
-        prompt_2 = STEP_2_PROMPT_TEMPLATE.format(category=report_category)
-        step1_str = json.dumps(raw_data, indent=2, ensure_ascii=False)
-        final_json = call_ai_and_wait_generic(prompt_2, step1_str)
-        
-        if not final_json:
-            status_box.update(label="❌ 第二步 AI 格式化失败", state="error")
-            st.stop()
+            # 3. 后处理与生成文档
+            today_str = datetime.now().strftime("%Y/%m/%d")
+            if "header_info" in final_json:
+                final_json["header_info"]["date"] = today_str
 
-        # D. 后处理 (日期 & 类别)
-        today_str = datetime.now().strftime("%Y/%m/%d")
-        if "header_info" in final_json:
-            final_json["header_info"]["date"] = today_str
+            status_box.write("💾 正在生成 Word 文档...")
+            generator = DocGenerator()
+            output_docx_path = f"temp_{final_filename}"
+            
+            # 关键：调用 create_styled_doc，传入 image_list (注意：DocGenerator 必须支持 image_list 参数)
+            # 如果你没改 DocGenerator，请确保它的 create_styled_doc 接收 image_list=extracted_images
+            generator.create_styled_doc(final_json, output_docx_path, img_path=None,report_category=report_category)
+            
+            status_box.update(label="✅ 生成成功！", state="complete", expanded=False)
+        else:
+            # B. AI Step 1
+            status_box.write("🧠 AI Step 1: 正在提取关键数据...")
+            prompt_1 = STEP_1_PROMPT_TEMPLATE.format(category=report_category)
+            raw_data = call_ai_and_wait_generic(prompt_1, pdf_text)
+            
+            if not raw_data:
+                status_box.update(label="❌ 第一步 AI 分析失败", state="error")
+                st.stop()
+            
+            # C. AI Step 2
+            status_box.write("✍️ AI Step 2: 正在进行格式化、缩写和标红...")
+            prompt_2 = STEP_2_PROMPT_TEMPLATE.format(category=report_category)
+            step1_str = json.dumps(raw_data, indent=2, ensure_ascii=False)
+            final_json = call_ai_and_wait_generic(prompt_2, step1_str)
+            
+            if not final_json:
+                status_box.update(label="❌ 第二步 AI 格式化失败", state="error")
+                st.stop()
 
-        # E. 生成文件名
-        # 获取原文件名 (去除后缀)
-        original_filename = os.path.splitext(uploaded_pdf.name)[0]
-        # 获取银行缩写
-        institution = raw_data.get("meta", {}).get("institution", "Unknown")
-        bank_acronym = get_bank_acronym(institution)
-        # 拼接
-        final_filename = f"{report_category}_{user_name}_{bank_acronym}_{original_filename}.docx"
-        final_filename = final_filename.replace(" ", "_").replace("/", "-") # 清洗非法字符
+            # D. 后处理 (日期 & 类别)
+            today_str = datetime.now().strftime("%Y/%m/%d")
+            if "header_info" in final_json:
+                final_json["header_info"]["date"] = today_str
 
-        # F. 处理图片
-        img_temp_path = None
-        if uploaded_image:
-            img_temp_path = f"temp_{uploaded_image.name}"
-            with open(img_temp_path, "wb") as f:
-                f.write(uploaded_image.getbuffer())
-            status_box.write(f"🖼️ 已加载图片: {uploaded_image.name}")
+            # E. 生成文件名
+            # 获取原文件名 (去除后缀)
+            original_filename = os.path.splitext(uploaded_pdf.name)[0]
+            # 获取银行缩写
+            institution = raw_data.get("meta", {}).get("institution", "Unknown")
+            bank_acronym = get_bank_acronym(institution)
+            # 拼接
+            final_filename = f"{report_category}_{user_name}_{bank_acronym}_{original_filename}.docx"
+            final_filename = final_filename.replace(" ", "_").replace("/", "-") # 清洗非法字符
 
-        # G. 生成 Word
-        status_box.write("💾 正在生成 Word 文档...")
-        generator = DocGenerator()
-        output_docx_path = f"temp_{final_filename}" # 临时保存
-        
-        generator.create_styled_doc(final_json, output_docx_path, img_path=img_temp_path)
-        
+            # F. 处理图片
+            if uploaded_image_manual:
+                img_temp_path = f"temp_{uploaded_image_manual.name}"
+                with open(img_temp_path, "wb") as f:
+                    f.write(uploaded_image_manual.getbuffer())
+                status_box.write(f"🖼️ 已加载图片: {uploaded_image_manual.name}")
+
+            # G. 生成 Word
+            status_box.write("💾 正在生成 Word 文档...")
+            generator = DocGenerator()
+            output_docx_path = f"temp_{final_filename}" # 临时保存
+            
+            generator.create_styled_doc(final_json, output_docx_path, img_path=img_temp_path)
+            
         # H. 完成
-        status_box.update(label="✅ 生成成功！", state="complete", expanded=False)
+            status_box.update(label="✅ 生成成功！", state="complete", expanded=False)
         
         # 显示下载按钮
         with open(output_docx_path, "rb") as f:
@@ -314,7 +281,6 @@ if generate_btn and uploaded_pdf:
 
 elif generate_btn and not uploaded_pdf:
     st.warning("请先上传 PDF 文件！")
-
 
 
 
