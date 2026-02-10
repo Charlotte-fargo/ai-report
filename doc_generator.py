@@ -115,6 +115,9 @@ class DocGenerator:
         else :
             run = p.add_run("#Content#")
             run.font.bold = True
+            run = p.add_run("Wall Street Highlights-{report_category}")
+            run.font.bold = True
+            
             
         
         body_content = json_data.get("body_content", [])
@@ -150,4 +153,5 @@ class DocGenerator:
             run.add_picture(img_path, width=Inches(6.0))
 
         doc.save(output_path)
+
 
