@@ -23,7 +23,7 @@ API_BASE_URL = "https://api-v2.easyview.xyz/v3/ai"
 CLIENT_ID = st.secrets["CLIENT_ID"]
 CLIENT_SECRET = st.secrets["CLIENT_SECRET"]
 # AI 模型名称
-AI_MODEL_NAME = "deepseek-r1"
+AI_MODEL_NAME = "claude-sonnet-4"
 
 # 请求元数据 (Metadata)
 API_METADATA = {
@@ -208,6 +208,7 @@ when you finish, please check whether you follow the request.
   }}
 }}
 """
+
 
 
 
