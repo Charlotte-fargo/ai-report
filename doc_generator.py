@@ -107,26 +107,23 @@ class DocGenerator:
                 run_val.font.bold = True # Header部分全部加粗
                    # --- 2. 正文 (Content) ---
 
-        # 生成显示的文字
-        highlight_title = f"Wall Street Highlights-{clean_category}"
-
         p = doc.add_paragraph()
         apply_paragraph_style(p)
         
         if report_category == "Weekly Fund Flow":      
             run = p.add_run("#Content#")
             run.font.bold = False
+            # 如果 Weekly 模式不需要下面那行，这里就不写
         else:
-            # 1. 先写 #Content#
+            # 1. 写入 #Content# 这一行
             run = p.add_run("#Content#")
             run.font.bold = True
             
-            # 2. 另起一行，写 Wall Street Highlights-Equity (不加 #，加粗)
+            # 2. 创建一个新段落，实现“下一行”的效果
             p_next = doc.add_paragraph()
             apply_paragraph_style(p_next)
-            
-            # 这里直接用我们清洗好的名字
-            run_highlight = p_next.add_run(highlight_title)
+            # 写入 Wall Street Highlights 内容
+            run_highlight = p_next.add_run(f"Wall Street Highlights-{report_category}")
             run_highlight.font.bold = True
             
         body_content = json_data.get("body_content", [])
@@ -163,6 +160,7 @@ class DocGenerator:
             run.add_picture(img_path, width=Inches(6.0))
 
         doc.save(output_path)
+
 
 
 
