@@ -186,7 +186,7 @@ In `body_content`, identify the core viewpoint in EACH paragraph and wrap it wit
   "header_info": {{
     "category": "Wall Street Highlights-{category}",
     "date": "YYYY/MM/DD",
-    "title": "[Full Bank Name]: [Title of the Report]should including stock(ticker.country for example,China Mobile(941.HK) )", 
+    "title": "[Full Bank Name]: [Title of the Report]should including stock(ticker.country for example,China Mobile(941.HK) Stock(ticker) Only appear once. )", 
     "summary": "[Acronym] [plural verb]... (max 60 words)",
     "tags": "Generate 3 relevant Chinese tags separated by `/` (e.g., 消费/港股/电子)",
     "stock": "Ticker string (e.g. 9988.HK / BABA.US) OR Empty",
@@ -207,4 +207,5 @@ In `body_content`, identify the core viewpoint in EACH paragraph and wrap it wit
   }}
 }}
 """
+
 
