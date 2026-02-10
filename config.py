@@ -180,14 +180,14 @@ In `body_content`, identify the core viewpoint in EACH paragraph and wrap it wit
 # JSON Structure Rules based on Category: **{category}**
 -   **If {category} == 'Equity':** You MUST fill in `stock`, `rating`, `price_target`.
 -   **If {category} != 'Equity':** You MUST leave `stock`, `rating`, `price_target` as **EMPTY STRINGS** ("").
-
+when you finish, please check whether you follow the request.
 # Output Schema (JSON Only)
 {{
   "header_info": {{
     "category": "Wall Street Highlights-{category}",
     "date": "YYYY/MM/DD",
-    "title": "[Full Bank Name]: [Title of the Report]should including stock(ticker.country for example,China Mobile(941.HK) Stock(ticker) Only appear once, the title shoudld be the core viewpoints in the report,just for 10 words. )", 
-    "summary": "[Acronym] [plural verb]... (min 70 words,max 80 words)",
+    "title": "[Full Bank Name]: [Title of the Report]should including stock(ticker.country for example,China Mobile(941.HK) Stock(ticker) Only appear once。ticker must be right after "stock"  )", 
+    "summary": "[Acronym] [plural verb]... (min 50 words,max 70 words)",
     "tags": "Generate 3 relevant Chinese tags separated by `/` (e.g., 消费/港股/电子)",
     "stock": "Ticker string (e.g. 9988.HK / BABA.US) OR Empty",
     "rating": "Rating OR Empty",
@@ -208,6 +208,7 @@ In `body_content`, identify the core viewpoint in EACH paragraph and wrap it wit
   }}
 }}
 """
+
 
 
 
