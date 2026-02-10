@@ -157,7 +157,7 @@ body_content should between 400-500 words, and including 4-5 paragraphs，title 
 The report category is defined as: **{category}**.
  **Price Target Format:**
     -   MUST include Currency (HKD, USD, RMB).
-    -   Nust ensur If a **Previous Target** exists, put it in parentheses: `(Previous Price Target: XX.00)`.if not do not show the Previous Price Target,keep two decimals
+    -   Must ensure If a **Previous Target** exists (if obviously mentioned), put it in parentheses: `(Previous Price Target: XX.00)`.if not do not show the Previous Price Target,keep two decimals (if obviously mentioned).
     -   If both HKD and USD targets exist, join with `/`.
 # STRICT RULES
 1.  **Bank Acronyms:** Use Acronyms (JPM, GS, MS, DB, CITICS) in `summary` and `body_content`.
@@ -191,7 +191,7 @@ when you finish, please check whether you follow the request.
     "tags": "Generate 3 relevant Chinese tags separated by `/` (e.g., 消费/港股/电子)",
     "stock": "Ticker string (e.g. 9988.HK / BABA.US) OR Empty",
     "rating": "Rating OR Empty",
-    "price_target": "Formatted Price String (e.g. HKD100.00 (Previous Price Target: HKD80.00)),keep two decimals if previous price not mention in report content, you do not need to show the Previous"，
+    "price_target": "Formatted Price String (e.g. HKD100.00 (Previous Price Target: HKD80.00)),keep two decimals, (if obviously mentioned). if previous price not mention in report content, you do not need to show the Previous"，
     "category": "Wall Street Highlights-{category}"
   }},
   "body_content": [
@@ -208,6 +208,7 @@ when you finish, please check whether you follow the request.
   }}
 }}
 """
+
 
 
 
