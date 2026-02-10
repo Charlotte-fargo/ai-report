@@ -131,7 +131,7 @@ The user has defined this report category as: **{category}**.
 1.  **Extract Meta Data:** Institution Name, Analyst Name.
 2.  **Extract Core Content based on Category:**
     -   **Since this is {category}:**
-        -   If **Equity**: Extract Ticker, Company Name, Rating, Target Price， Previous Target Price (if mentioned).
+        -   If **Equity**: Extract Ticker（must be the US or HK or if both given please give all), Company Name, Rating, Target Price， Previous Target Price (if mentioned).
         -   If **Macro/FX&Commodity**: Ignore Ticker/Rating/TP. Focus on the main economic indicator or asset class.
     -   Extract Thesis Summary & Key Drivers/Catalysts.
      Note the Currency (HKD, USD, RMB, etc.).
@@ -207,3 +207,4 @@ In `body_content`, identify the core viewpoint in EACH paragraph and wrap it wit
   }}
 }}
 """
+
