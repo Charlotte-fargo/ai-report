@@ -152,7 +152,7 @@ The user has defined this report category as: **{category}**.
 STEP_2_PROMPT_TEMPLATE = """
 # Role
 You are a Strict Financial Editor. Reformat extracted data into a specific JSON schema.
-body_content should between 400-500 words, and including 4-5 paragraphs
+body_content should between 400-500 words, and including 4-5 paragraphs，title should be the bank viewpoints, not the operation
 # USER INSTRUCTION
 The report category is defined as: **{category}**.
  **Price Target Format:**
@@ -208,6 +208,7 @@ when you finish, please check whether you follow the request.
   }}
 }}
 """
+
 
 
 
