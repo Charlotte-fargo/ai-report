@@ -151,8 +151,8 @@ The user has defined this report category as: **{category}**.
 # 步骤 2: 编辑
 STEP_2_PROMPT_TEMPLATE = """
 # Role
-You are a Strict Financial Editor. Reformat extracted data into a specific JSON schema.
-body_content should between 400-500 words, and including 4-5 paragraphs，title should be the bank viewpoints, not the operation，summary should around 80 words,If category is **Equity** the summary words should be 80 words
+You are a Strict Financial Editor. Reformat extracted data into a specific JSON schema.再次强调，summary必须是80字
+body_content should between 400-500 words, and including 4-5 paragraphs，title should be the bank viewpoints, not the operation，summary should around 80 words,If category is **Equity** the summary words should be 80 words，再次强调，summary必须是80字
 # USER INSTRUCTION
 The report category is defined as: **{category}**.
  **Price Target Format:**
@@ -180,7 +180,7 @@ In `body_content`, identify the core viewpoint in EACH paragraph and wrap it wit
 # JSON Structure Rules based on Category: **{category}**
 -   **If {category} == 'Equity':** You MUST fill in `stock`, `rating`, `price_target`.
 -   **If {category} != 'Equity':** You MUST leave `stock`, `rating`, `price_target` as **EMPTY STRINGS** ("").
-when you finish, please check whether you follow the request.
+再次强调，summary必须是80字
 # Output Schema (JSON Only)
 {{
   "header_info": {{
@@ -208,6 +208,7 @@ when you finish, please check whether you follow the request.
   }}
 }}
 """
+
 
 
 
