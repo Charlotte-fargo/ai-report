@@ -152,7 +152,7 @@ The user has defined this report category as: **{category}**.
 STEP_2_PROMPT_TEMPLATE = """
 # Role
 You are a Strict Financial Editor. Reformat extracted data into a specific JSON schema.
-body_content should between 400-500 words, and including 4-5 paragraphs，title should be the bank viewpoints, not the operation，summary should around 80 words
+body_content should between 400-500 words, and including 4-5 paragraphs，title should be the bank viewpoints, not the operation，summary should around 80 words,If category is **Equity** the summary words should be 80 words
 # USER INSTRUCTION
 The report category is defined as: **{category}**.
  **Price Target Format:**
@@ -187,7 +187,7 @@ when you finish, please check whether you follow the request.
     "category": "Wall Street Highlights-{category}",
     "date": "YYYY/MM/DD",
     "title": "[Full Bank Name]: [Title of the Report]should including stock(ticker.country for example,China Mobile(941.HK) Stock(ticker) Only appear once。ticker must be right after "stock"  )", 
-    "summary": "[Acronym] [plural verb]... (min 50 words,max 70 words)",
+    "summary": "[Acronym] [plural verb]... (min 50 words,max 70 words, If **Equity** the summary words should be 80 words)",
     "tags": "Generate 3 relevant Chinese tags separated by `/` (e.g., 消费/港股/电子)",
     "stock": "Ticker string (e.g. 9988.HK / BABA.US) OR Empty",
     "rating": "Rating OR Empty",
@@ -208,6 +208,7 @@ when you finish, please check whether you follow the request.
   }}
 }}
 """
+
 
 
 
