@@ -203,7 +203,7 @@ if generate_btn and uploaded_pdf:
             status_box.write("💾 正在生成 Word 文档...")
             generator = DocGenerator()
             output_docx_path = f"temp_{final_filename}"
-            
+            temp_img_path = None
             # 关键：调用 create_styled_doc，传入 image_list (注意：DocGenerator 必须支持 image_list 参数)
             # 如果你没改 DocGenerator，请确保它的 create_styled_doc 接收 image_list=extracted_images
             generator.create_styled_doc(final_json, output_docx_path, img_path=None,report_category=report_category)
@@ -284,6 +284,7 @@ if generate_btn and uploaded_pdf:
 
 elif generate_btn and not uploaded_pdf:
     st.warning("请先上传 PDF 文件！")
+
 
 
 
