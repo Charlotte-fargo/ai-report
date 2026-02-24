@@ -136,7 +136,7 @@ The user has defined this report category as: **{category}**.
     -   Extract Thesis Summary & Key Drivers/Catalysts.
      Note the Currency (HKD, USD, RMB, etc.).
 
-# Output Format (JSON)
+# Output Format (JSON) - All content must be in English
 {{
   "meta": {{ "institution": "", "analyst": "" }},
   "stock": {{ "ticker": "", "name": "", "rating": "", "target_price": ""， "target_price_previous": "","currency": " }},
@@ -208,6 +208,7 @@ In `body_content`, identify the core viewpoint in EACH paragraph and wrap it wit
   }}
 }}
 """
+
 
 
 
