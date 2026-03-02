@@ -141,7 +141,7 @@ with st.sidebar:
     user_name = st.text_input("用户名称 (User Name)", value="Charlotte")
     report_category = st.selectbox(
         "报告类别 (Category)",
-        ("Equity", "Macro", "FX&Commodity","Weekly Fund Flow"),
+        ("Equity", "Macro", "FX&Commodities","Weekly Fund Flow"),
         index=0
     )
     st.info(f"当前模式: {report_category}\n(Equity 会包含股价评级，其他则隐藏)")
@@ -284,6 +284,7 @@ if generate_btn and uploaded_pdf:
 
 elif generate_btn and not uploaded_pdf:
     st.warning("请先上传 PDF 文件！")
+
 
 
 
