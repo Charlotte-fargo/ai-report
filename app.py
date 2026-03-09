@@ -167,7 +167,7 @@ with tab1:
     with col2:
         report_category = st.selectbox(
             "报告类别 (Category)",
-            ("Equity", "Macro", "FX", "Commodity"),
+            ("Equity", "Macro", "FX&Commodities","Weekly Fund Flow"),
             index=0
         )
         
@@ -440,4 +440,5 @@ with tab2:
                 st.markdown(f"**🤖 模型: `{record['model']}`** ⏱️ 时间: {record['time']}")
                 st.code(record['content'], language="text")
                 st.divider() # 每条记录之间加一条分割线
+
 
