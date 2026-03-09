@@ -204,7 +204,7 @@ with tab1:
 
     generate_btn = st.button("🚀 开始生成 Word 报告", type="primary", key="standard_btn")
 
-   if generate_btn and uploaded_pdf:
+    if generate_btn and uploaded_pdf:
         # 1. 准备工作
         status_box = st.status("正在处理...", expanded=True)
     
@@ -498,6 +498,7 @@ with tab2:
                 st.markdown(f"**🤖 模型: `{record['model']}`** ⏱️ 时间: {record['time']}")
                 st.code(record['content'], language="text")
                 st.divider() # 每条记录之间加一条分割线
+
 
 
 
