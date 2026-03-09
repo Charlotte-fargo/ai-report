@@ -65,27 +65,31 @@ The user has defined this report category as: **{category}**.
 1.  **Extract Meta Data:** Institution Name, Analyst Name.
 2.  **Extract Core Content based on Category:**
     -   **Since this is {category}:**
-        -   If **Equity**: Extract Ticker, Company Name, Rating, Target Price.
+        -   If **Equity**: Extract Ticker(s), Company Name, Rating, Target Price(s). 
+            **CRITICAL: You MUST extract ALL associated tickers mentioned in the report. Do not leave this empty. If the company has multiple listings (e.g., 1, 2, or more tickers like US and HK), you MUST explicitly extract EVERY single ticker and EVERY corresponding target price. Do not miss any.**
         -   If **Macro/FX/Commodity**: Ignore Ticker/Rating/TP. Focus on the main economic indicator or asset class.
     -   Extract Thesis Summary & Key Drivers/Catalysts.
 
 # Output Format (JSON)
-{{
-  "meta": {{ "institution": "", "analyst": "" }},
-  "stock": {{ "ticker": "", "name": "", "rating": "", "target_price": "" }},
-  "content_raw": {{
+{
+  "meta": { "institution": "", "analyst": "" },
+  "stock": { "ticker": "", "name": "", "rating": "", "target_price": "" },
+  "content_raw": {
     "thesis_summary": "...",
     "drivers": ["...", "..."],
     "financial_outlook": "..."
-  }}
-}}
+  }
+}
+
+
 """
 
 # 步骤 2: 编辑
 STEP_2_PROMPT_TEMPLATE = """
 # Role
 You are a Strict Financial Editor. Reformat extracted data into a specific JSON schema.
-body_content should between 400-500 words, and including 4-5 paragraphs
+body_content should be between 400-500 words, and include 4-5 paragraphs.
+
 # USER INSTRUCTION
 The report category is defined as: **{category}**.
 
@@ -95,34 +99,39 @@ The report category is defined as: **{category}**.
 3.  **Red Highlighting (CRITICAL):**
     -   In `body_content`, identify the most important sentence in EACH paragraph and wrap it with double asterisks `**`.
 
+# DUAL LISTING & CURRENCY RULES (CRITICAL)
+1.  **Exhaustive Tickers:** You MUST include ALL tickers associated with the company. If there is only one, write it. If there are multiple, combine ALL of them using a forward slash `/` (e.g., `BABA.US/9988.HK`). NEVER leave it empty if {category} == 'Equity'. Apply this to the Title, Header, and Footer.
+2.  **Multiple Target Prices:** If there are multiple target prices, combine ALL of them using a forward slash `/` in the exact same order as the tickers.
+3.  **Currency Format:** NEVER use the `$` symbol. You MUST use 3-letter currency codes (e.g., `USD`, `HKD`, `CNY`) placed immediately before the number with no space (e.g., `USD215.00/HKD210.00`).
+
 # JSON Structure Rules based on Category: **{category}**
--   **If {category} == 'Equity':** You MUST fill in `stock`, `rating`, `price_target`.
+-   **If {category} == 'Equity':** You MUST fill in `stock`, `rating`, `price_target`. **The `stock` field MUST contain ALL tickers (at least one) and CANNOT be empty.**
 -   **If {category} != 'Equity':** You MUST leave `stock`, `rating`, `price_target` as **EMPTY STRINGS** ("").
 
 # Output Schema (JSON Only)
-{{
-  "header_info": {{
+{
+  "header_info": {
     "category": "Wall Street Highlights-{category}",
     "date": "YYYY/MM/DD",
-    "title": "[Full Bank Name]: [Title of the Report]should including stock(ticker.country for example,China Mobile(941.HK) )", 
+    "title": "[Full Bank Name]: [Company Name]([ALL Tickers separated by /]) [Title of the Report]", 
     "summary": "[Acronym] [plural verb]... (max 60 words)",
-    "tags": "Generate 3 relevant Chinese tags separated by `/` (e.g., 消费/港股/电子)",
-    "stock": "Ticker OR Empty",
+    "tags": "Generate 3 relevant Chinese tags separated by `/` (e.g., 云计算/人工智能/美股)",
+    "stock": "ALL Tickers separated by `/` (e.g., BABA.US/9988.HK). MUST NOT BE EMPTY if Equity.",
     "rating": "Rating OR Empty",
-    "price_target": "Price OR Empty"
-  }},
+    "price_target": "ALL Price(s) with currency code separated by `/` (e.g., USD215.00/HKD210.00) OR Empty"
+  },
   "body_content": [
     "Paragraph 1: Highlight key sentence with `**`.",
     "Paragraph 2: Highlight key sentence with `**`.",
-    ...
-    ...
+    "Paragraph 3: Highlight key sentence with `**`.",
+    "Paragraph 4: Highlight key sentence with `**`."
   ],
-  "footer_info": {{
-    "stock": "Ticker OR Empty",
+  "footer_info": {
+    "stock": "ALL Tickers separated by `/` (e.g., BABA.US/9988.HK). MUST NOT BE EMPTY if Equity.",
     "rating": "Rating OR Empty",
-    "price_target": "Price OR Empty"
-  }}
-}}
+    "price_target": "ALL Price(s) with currency code separated by `/` (e.g., USD215.00/HKD210.00) OR Empty"
+  }
+}
 """
 
 STEP_3_PROMPT = """
@@ -193,4 +202,5 @@ User will also provide a Report Link ID.
   "link": "[https://news.fargowealth.com/?id=](https://news.fargowealth.com/?id=){provided_id}&feature=1&viewChannelId=4&rootOrgId=1"
 }
 """
+
 
