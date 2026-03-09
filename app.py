@@ -205,93 +205,93 @@ with tab1:
     generate_btn = st.button("🚀 开始生成 Word 报告", type="primary", key="standard_btn")
 
     if generate_btn and uploaded_pdf:
-    # 1. 准备工作
-    status_box = st.status("正在处理...", expanded=True)
+        # 1. 准备工作
+        status_box = st.status("正在处理...", expanded=True)
+        
+        try:
+            # A. 读取 PDF
+            status_box.write("📄 正在读取 PDF 内容...")
+            pdf_text = extract_pdf_text(uploaded_pdf)
+            
+            if not pdf_text:
+                status_box.update(label="❌ PDF 读取失败或为空", state="error")
+                st.stop()
     
-    try:
-        # A. 读取 PDF
-        status_box.write("📄 正在读取 PDF 内容...")
-        pdf_text = extract_pdf_text(uploaded_pdf)
-        
-        if not pdf_text:
-            status_box.update(label="❌ PDF 读取失败或为空", state="error")
-            st.stop()
-
-        # B. AI Step 1
-        status_box.write("🧠 AI Step 1: 正在提取关键数据...")
-        prompt_1 = config.STEP_1_PROMPT_TEMPLATE.format(category=report_category)
-        raw_response_1 = call_ai_and_wait_generic(prompt_1, pdf_text, model_name=selected_model_tab1)
-        
-        if not raw_response_1:
-            status_box.update(label="❌ 第一步 AI 分析失败", state="error")
-            st.stop()
+            # B. AI Step 1
+            status_box.write("🧠 AI Step 1: 正在提取关键数据...")
+            prompt_1 = config.STEP_1_PROMPT_TEMPLATE.format(category=report_category)
+            raw_response_1 = call_ai_and_wait_generic(prompt_1, pdf_text, model_name=selected_model_tab1)
             
-        # 🛡️ 清洗并解析第一步的数据
-        raw_data = parse_ai_json(raw_response_1)
-        
-        # C. AI Step 2
-        status_box.write("✍️ AI Step 2: 正在进行格式化、缩写和标红...")
-        prompt_2 = config.STEP_2_PROMPT_TEMPLATE.format(category=report_category)
-        # 将第一步的字典转化为标准 JSON 字符串喂给第二步
-        step1_str = json.dumps(raw_data, indent=2, ensure_ascii=False)
-        raw_response_2 = call_ai_and_wait_generic(prompt_2, step1_str, model_name=selected_model_tab1)
-        
-        if not raw_response_2:
-            status_box.update(label="❌ 第二步 AI 格式化失败", state="error")
-            st.stop()
-
-        # 🛡️ 清洗并解析第二步的数据
-        final_json = parse_ai_json(raw_response_2)
-
-        # D. 后处理 (日期 & 类别)
-        today_str = datetime.now().strftime("%Y/%m/%d")
-        if "header_info" in final_json:
-            final_json["header_info"]["date"] = today_str
-            final_json["header_info"]["category"] = report_category
-
-        # E. 生成文件名
-        original_filename = os.path.splitext(uploaded_pdf.name)[0]
-        institution = raw_data.get("meta", {}).get("institution", "Unknown")
-        bank_acronym = get_bank_acronym(institution)
-        
-        final_filename = f"{report_category}_{user_name}_{bank_acronym}_{original_filename}.docx"
-        final_filename = final_filename.replace(" ", "_").replace("/", "-") 
-
-        # F. 处理图片
-        img_temp_path = None
-        if uploaded_image:
-            img_temp_path = f"temp_{uploaded_image.name}"
-            with open(img_temp_path, "wb") as f:
-                f.write(uploaded_image.getbuffer())
-            status_box.write(f"🖼️ 已加载图片: {uploaded_image.name}")
-
-        # G. 生成 Word
-        status_box.write("💾 正在生成 Word 文档...")
-        generator = DocGenerator()
-        output_docx_path = f"temp_{final_filename}" 
-        
-        generator.create_styled_doc(final_json, output_docx_path, img_path=img_temp_path)
-        
-        # H. 完成
-        status_box.update(label="✅ 生成成功！", state="complete", expanded=False)
-        
-        # 显示下载按钮
-        with open(output_docx_path, "rb") as f:
-            file_bytes = f.read()
-            st.download_button(
-                label=f"⬇️ 下载报告: {final_filename}",
-                data=file_bytes,
-                file_name=final_filename,
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
+            if not raw_response_1:
+                status_box.update(label="❌ 第一步 AI 分析失败", state="error")
+                st.stop()
+                
+            # 🛡️ 清洗并解析第一步的数据
+            raw_data = parse_ai_json(raw_response_1)
             
-        # 清理临时文件
-        if os.path.exists(output_docx_path): os.remove(output_docx_path)
-        if img_temp_path and os.path.exists(img_temp_path): os.remove(img_temp_path)
-
-    except Exception as e:
-        status_box.update(label="❌ 发生错误", state="error")
-        st.error(f"Error details: {e}")
+            # C. AI Step 2
+            status_box.write("✍️ AI Step 2: 正在进行格式化、缩写和标红...")
+            prompt_2 = config.STEP_2_PROMPT_TEMPLATE.format(category=report_category)
+            # 将第一步的字典转化为标准 JSON 字符串喂给第二步
+            step1_str = json.dumps(raw_data, indent=2, ensure_ascii=False)
+            raw_response_2 = call_ai_and_wait_generic(prompt_2, step1_str, model_name=selected_model_tab1)
+            
+            if not raw_response_2:
+                status_box.update(label="❌ 第二步 AI 格式化失败", state="error")
+                st.stop()
+    
+            # 🛡️ 清洗并解析第二步的数据
+            final_json = parse_ai_json(raw_response_2)
+    
+            # D. 后处理 (日期 & 类别)
+            today_str = datetime.now().strftime("%Y/%m/%d")
+            if "header_info" in final_json:
+                final_json["header_info"]["date"] = today_str
+                final_json["header_info"]["category"] = report_category
+    
+            # E. 生成文件名
+            original_filename = os.path.splitext(uploaded_pdf.name)[0]
+            institution = raw_data.get("meta", {}).get("institution", "Unknown")
+            bank_acronym = get_bank_acronym(institution)
+            
+            final_filename = f"{report_category}_{user_name}_{bank_acronym}_{original_filename}.docx"
+            final_filename = final_filename.replace(" ", "_").replace("/", "-") 
+    
+            # F. 处理图片
+            img_temp_path = None
+            if uploaded_image:
+                img_temp_path = f"temp_{uploaded_image.name}"
+                with open(img_temp_path, "wb") as f:
+                    f.write(uploaded_image.getbuffer())
+                status_box.write(f"🖼️ 已加载图片: {uploaded_image.name}")
+    
+            # G. 生成 Word
+            status_box.write("💾 正在生成 Word 文档...")
+            generator = DocGenerator()
+            output_docx_path = f"temp_{final_filename}" 
+            
+            generator.create_styled_doc(final_json, output_docx_path, img_path=img_temp_path)
+            
+            # H. 完成
+            status_box.update(label="✅ 生成成功！", state="complete", expanded=False)
+            
+            # 显示下载按钮
+            with open(output_docx_path, "rb") as f:
+                file_bytes = f.read()
+                st.download_button(
+                    label=f"⬇️ 下载报告: {final_filename}",
+                    data=file_bytes,
+                    file_name=final_filename,
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
+                
+            # 清理临时文件
+            if os.path.exists(output_docx_path): os.remove(output_docx_path)
+            if img_temp_path and os.path.exists(img_temp_path): os.remove(img_temp_path)
+    
+        except Exception as e:
+            status_box.update(label="❌ 发生错误", state="error")
+            st.error(f"Error details: {e}")
 
 # ============== TAB 2: 摘要生成 ==============
 with tab2:
@@ -459,6 +459,7 @@ with tab2:
                 st.markdown(f"**🤖 模型: `{record['model']}`** ⏱️ 时间: {record['time']}")
                 st.code(record['content'], language="text")
                 st.divider() # 每条记录之间加一条分割线
+
 
 
 
