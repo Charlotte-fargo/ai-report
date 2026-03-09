@@ -72,54 +72,159 @@ def get_token():
     except Exception as e:
         print(f"❌ Token 获取失败: {e}")
         return None
-
-def call_ai_and_wait_generic(system_prompt, user_content, model_name=None):
-    """
-    调用 AI API
-    model_name: 模型名称，如果为None则使用默认的 AI_MODEL_NAME
-    """
-    if model_name is None:
-        model_name = config.AI_MODEL_NAME
-        
-    token = get_token()
-    if not token: return None
-
-    full_prompt = f"{system_prompt}\n\n=== INPUT DATA ===\n{user_content}"
-    url = f"{config.API_BASE_URL}/job"
-    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
+# --- 🛠️ 新增：安全的 JSON 清洗与解析函数 ---
+def parse_ai_json(raw_response):
+    if isinstance(raw_response, dict):
+        return raw_response # 如果已经是字典，直接返回
     
-    payload = {
-        "type": "callLlm",
-        "metadata": config.API_METADATA,
-        "input": {"parameter": {"model_name": model_name, "prompt": full_prompt}}
-    }
-
     try:
-        print(f"🚀 提交 AI 任务 (模型: {model_name})...")
-        resp = requests.post(url, headers=headers, json=payload, timeout=30)
-        if resp.status_code != 200:
-            print(f"❌ 提交失败: {resp.text}")
-            return None
+        # 去除大模型可能生成的 ```json 和 ``` 标记
+        cleaned_text = re.sub(r"```json\s*", "", raw_response, flags=re.IGNORECASE)
+        cleaned_text = re.sub(r"```\s*", "", cleaned_text)
+        cleaned_text = cleaned_text.strip()
         
-        job_id = resp.json().get("id") or resp.json().get("uuid")
-        print(f"⏳ 等待 AI (ID: {job_id})...")
-
-        for i in range(60): 
-            time.sleep(2)
-            check_url = f"{config.API_BASE_URL}/job/JOB_ID/{job_id}"
-            check_resp = requests.get(check_url, headers=headers)
-            
-            if check_resp.status_code == 200:
-                res = check_resp.json()
-                status = res.get("status")
-                if status in ["SUCCESS", "COMPLETED"]:
-                    print("✅ AI 完成！")
-                    return clean_json(res.get("output") or res.get("result"))
-                elif status == "FAILED":
-                    return None
+        # 解析为 Python 字典
+        return json.loads(cleaned_text)
     except Exception as e:
-        print(f"❌ 异常: {e}")
-        return None
+        raise ValueError(f"JSON 解析失败: {e}\n原始返回文本: {raw_response[:200]}...")
+
+# ----------------------------------------
+
+if generate_btn and uploaded_pdf:
+    # 1. 准备工作
+    status_box = st.status("正在处理...", expanded=True)
+    
+    try:
+        # A. 读取 PDF
+        status_box.write("📄 正在读取 PDF 内容...")
+        pdf_text = extract_pdf_text(uploaded_pdf)
+        
+        if not pdf_text:
+            status_box.update(label="❌ PDF 读取失败或为空", state="error")
+            st.stop()
+
+        # B. AI Step 1
+        status_box.write("🧠 AI Step 1: 正在提取关键数据...")
+        prompt_1 = config.STEP_1_PROMPT_TEMPLATE.format(category=report_category)
+        raw_response_1 = call_ai_and_wait_generic(prompt_1, pdf_text, model_name=selected_model_tab1)
+        
+        if not raw_response_1:
+            status_box.update(label="❌ 第一步 AI 分析失败", state="error")
+            st.stop()
+            
+        # 🛡️ 清洗并解析第一步的数据
+        raw_data = parse_ai_json(raw_response_1)
+        
+        # C. AI Step 2
+        status_box.write("✍️ AI Step 2: 正在进行格式化、缩写和标红...")
+        prompt_2 = config.STEP_2_PROMPT_TEMPLATE.format(category=report_category)
+        # 将第一步的字典转化为标准 JSON 字符串喂给第二步
+        step1_str = json.dumps(raw_data, indent=2, ensure_ascii=False)
+        raw_response_2 = call_ai_and_wait_generic(prompt_2, step1_str, model_name=selected_model_tab1)
+        
+        if not raw_response_2:
+            status_box.update(label="❌ 第二步 AI 格式化失败", state="error")
+            st.stop()
+
+        # 🛡️ 清洗并解析第二步的数据
+        final_json = parse_ai_json(raw_response_2)
+
+        # D. 后处理 (日期 & 类别)
+        today_str = datetime.now().strftime("%Y/%m/%d")
+        if "header_info" in final_json:
+            final_json["header_info"]["date"] = today_str
+            final_json["header_info"]["category"] = report_category
+
+        # E. 生成文件名
+        original_filename = os.path.splitext(uploaded_pdf.name)[0]
+        institution = raw_data.get("meta", {}).get("institution", "Unknown")
+        bank_acronym = get_bank_acronym(institution)
+        
+        final_filename = f"{report_category}_{user_name}_{bank_acronym}_{original_filename}.docx"
+        final_filename = final_filename.replace(" ", "_").replace("/", "-") 
+
+        # F. 处理图片
+        img_temp_path = None
+        if uploaded_image:
+            img_temp_path = f"temp_{uploaded_image.name}"
+            with open(img_temp_path, "wb") as f:
+                f.write(uploaded_image.getbuffer())
+            status_box.write(f"🖼️ 已加载图片: {uploaded_image.name}")
+
+        # G. 生成 Word
+        status_box.write("💾 正在生成 Word 文档...")
+        generator = DocGenerator()
+        output_docx_path = f"temp_{final_filename}" 
+        
+        generator.create_styled_doc(final_json, output_docx_path, img_path=img_temp_path)
+        
+        # H. 完成
+        status_box.update(label="✅ 生成成功！", state="complete", expanded=False)
+        
+        # 显示下载按钮
+        with open(output_docx_path, "rb") as f:
+            file_bytes = f.read()
+            st.download_button(
+                label=f"⬇️ 下载报告: {final_filename}",
+                data=file_bytes,
+                file_name=final_filename,
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+            
+        # 清理临时文件
+        if os.path.exists(output_docx_path): os.remove(output_docx_path)
+        if img_temp_path and os.path.exists(img_temp_path): os.remove(img_temp_path)
+
+    except Exception as e:
+        status_box.update(label="❌ 发生错误", state="error")
+        st.error(f"Error details: {e}")
+# def call_ai_and_wait_generic(system_prompt, user_content, model_name=None):
+#     """
+#     调用 AI API
+#     model_name: 模型名称，如果为None则使用默认的 AI_MODEL_NAME
+#     """
+#     if model_name is None:
+#         model_name = config.AI_MODEL_NAME
+        
+#     token = get_token()
+#     if not token: return None
+
+#     full_prompt = f"{system_prompt}\n\n=== INPUT DATA ===\n{user_content}"
+#     url = f"{config.API_BASE_URL}/job"
+#     headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
+    
+#     payload = {
+#         "type": "callLlm",
+#         "metadata": config.API_METADATA,
+#         "input": {"parameter": {"model_name": model_name, "prompt": full_prompt}}
+#     }
+
+#     try:
+#         print(f"🚀 提交 AI 任务 (模型: {model_name})...")
+#         resp = requests.post(url, headers=headers, json=payload, timeout=30)
+#         if resp.status_code != 200:
+#             print(f"❌ 提交失败: {resp.text}")
+#             return None
+        
+#         job_id = resp.json().get("id") or resp.json().get("uuid")
+#         print(f"⏳ 等待 AI (ID: {job_id})...")
+
+#         for i in range(60): 
+#             time.sleep(2)
+#             check_url = f"{config.API_BASE_URL}/job/JOB_ID/{job_id}"
+#             check_resp = requests.get(check_url, headers=headers)
+            
+#             if check_resp.status_code == 200:
+#                 res = check_resp.json()
+#                 status = res.get("status")
+#                 if status in ["SUCCESS", "COMPLETED"]:
+#                     print("✅ AI 完成！")
+#                     return clean_json(res.get("output") or res.get("result"))
+#                 elif status == "FAILED":
+#                     return None
+#     except Exception as e:
+#         print(f"❌ 异常: {e}")
+#         return None
 
 def clean_json(raw_input):
     text = ""
@@ -440,5 +545,6 @@ with tab2:
                 st.markdown(f"**🤖 模型: `{record['model']}`** ⏱️ 时间: {record['time']}")
                 st.code(record['content'], language="text")
                 st.divider() # 每条记录之间加一条分割线
+
 
 
