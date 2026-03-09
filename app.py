@@ -173,7 +173,7 @@ with tab1:
         
     with col3:
         # 新增：模型选择下拉框 (默认选中第一个)
-        selected_model_tab1 = st.selectbox("🤖 AI 模型 (Model)", AVAILABLE_MODELS, index=0)
+        selected_model_tab1 = st.selectbox("🤖 AI 模型 (Model)", AVAILABLE_MODELS, index=6)
         
     st.info(f"当前模式: {report_category}\n(Equity 会包含股价评级，其他则隐藏)")
     
@@ -286,7 +286,7 @@ with tab2:
     # ================= 👈 左侧栏：上传与配置 =================
     with left_col:
         st.markdown("#### ⚙️ 全局配置")
-        selected_model_tab2 = st.selectbox("🤖 选择 AI 模型", AVAILABLE_MODELS, index=0) # index=1 比如默认选 claude-sonnet-4
+        selected_model_tab2 = st.selectbox("🤖 选择 AI 模型", AVAILABLE_MODELS, index=1) # index=1 比如默认选 claude-sonnet-4
         
         st.write("") # 留点空隙
         
@@ -440,3 +440,4 @@ with tab2:
                 st.markdown(f"**🤖 模型: `{record['model']}`** ⏱️ 时间: {record['time']}")
                 st.code(record['content'], language="text")
                 st.divider() # 每条记录之间加一条分割线
+
