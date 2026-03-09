@@ -89,7 +89,7 @@ STEP_2_PROMPT_TEMPLATE = """
 # Role
 You are a Strict Financial Editor. Reformat extracted data into a specific JSON schema.
 body_content should be between 400-500 words, and include 4-5 paragraphs.
-
+body_content should said the Bank Acronyms show the viewpoints.
 # USER INSTRUCTION
 The report category is defined as: **{category}**.
 
@@ -113,7 +113,7 @@ The report category is defined as: **{category}**.
   "header_info": {
     "category": "Wall Street Highlights-{category}",
     "date": "YYYY/MM/DD",
-    "title": "[Full Bank Name]: [Company Name]([ALL Tickers separated by /]) [Title of the Report]", 
+    "title": "[Full Bank Name]: [Company Name]([ALL Tickers separated by /]) [Title of the Report] the wordcount maxiumu 15", 
     "summary": "[Acronym] [plural verb]... (max 60 words)",
     "tags": "Generate 3 relevant Chinese tags separated by `/` (e.g., 云计算/人工智能/美股)",
     "stock": "ALL Tickers separated by `/` (e.g., BABA.US/9988.HK). MUST NOT BE EMPTY if Equity.",
@@ -202,5 +202,6 @@ User will also provide a Report Link ID.
   "link": "[https://news.fargowealth.com/?id=](https://news.fargowealth.com/?id=){provided_id}&feature=1&viewChannelId=4&rootOrgId=1"
 }
 """
+
 
 
