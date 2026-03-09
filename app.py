@@ -173,37 +173,29 @@ tab1, tab2 = st.tabs(["📋 标准报告生成", "📝 摘要生成"])
 
 # ============== TAB 1: 标准报告生成 ==============
 with tab1:
-    st.subheader("标准报告生成")
-    
-    # --- ⚙️ 报告配置区 ---
-    st.markdown("#### ⚙️ 报告配置")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
+    # --- 侧边栏配置 ---
+    with st.sidebar:
+        st.header("⚙️ 配置")
         user_name = st.text_input("用户名称 (User Name)", value="Charlotte")
-        
-    with col2:
         report_category = st.selectbox(
             "报告类别 (Category)",
+            ("Equity", "Macro", "FX&Commodity","Weekly Fund Flow"),
             ("Equity", "Macro", "FX&Commodities","Weekly Fund Flow"),
             index=0
         )
-        
-    with col3:
-        # 新增：模型选择下拉框 (默认选中第一个)
-        selected_model_tab1 = st.selectbox("🤖 AI 模型 (Model)", AVAILABLE_MODELS, index=6)
-        
-    st.info(f"当前模式: {report_category}\n(Equity 会包含股价评级，其他则隐藏)")
+        st.info(f"当前模式: {report_category}\n(Equity 会包含股价评级，其他则隐藏)")
     
-    st.divider() 
+    # --- 主界面 ---
+    uploaded_pdf = st.file_uploader("上传 PDF 研报", type=["pdf"])
+    # 逻辑分支：图片上传控件
+    uploaded_image_manual = None
+    if report_category == "Weekly Fund Flow":
+        st.caption("✅ 资金流模式。")
+    else:
+        uploaded_image_manual = st.file_uploader("上传封面图 (可选)", type=["png", "jpg", "jpeg"])
     
-    # --- 📁 文件上传区 ---
-    st.markdown("#### 📁 上传文件")
-    uploaded_pdf = st.file_uploader("上传 PDF 研报", type=["pdf"], key="standard_pdf")
-    uploaded_image = st.file_uploader("上传图表 (可选，将放在文末)", type=["png", "jpg", "jpeg"], key="standard_image")
-
-    generate_btn = st.button("🚀 开始生成 Word 报告", type="primary", key="standard_btn")
-
+    generate_btn = st.button("🚀 开始生成 Word 报告", type="primary")
+    
     if generate_btn and uploaded_pdf:
         # 1. 准备工作
         status_box = st.status("正在处理...", expanded=True)
@@ -259,7 +251,7 @@ with tab1:
             else:
                 # B. AI Step 1
                 status_box.write("🧠 AI Step 1: 正在提取关键数据...")
-                prompt_1 = config.STEP_1_PROMPT_TEMPLATE.format(category=report_category)
+                prompt_1 = STEP_1_PROMPT_TEMPLATE.format(category=report_category)
                 raw_data = call_ai_and_wait_generic(prompt_1, pdf_text)
     
                 if not raw_data:
@@ -268,7 +260,7 @@ with tab1:
     
                 # C. AI Step 2
                 status_box.write("✍️ AI Step 2: 正在进行格式化、缩写和标红...")
-                prompt_2 = config.STEP_2_PROMPT_TEMPLATE.format(category=report_category)
+                prompt_2 = STEP_2_PROMPT_TEMPLATE.format(category=report_category)
                 step1_str = json.dumps(raw_data, indent=2, ensure_ascii=False)
                 final_json = call_ai_and_wait_generic(prompt_2, step1_str)
     
@@ -331,7 +323,6 @@ with tab1:
     
     elif generate_btn and not uploaded_pdf:
         st.warning("请先上传 PDF 文件！")
-
 # ============== TAB 2: 摘要生成 ==============
 with tab2:
     st.subheader("中文摘要生成")
@@ -498,6 +489,7 @@ with tab2:
                 st.markdown(f"**🤖 模型: `{record['model']}`** ⏱️ 时间: {record['time']}")
                 st.code(record['content'], language="text")
                 st.divider() # 每条记录之间加一条分割线
+
 
 
 
