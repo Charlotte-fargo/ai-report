@@ -259,7 +259,7 @@ with tab1:
             else:
                 # B. AI Step 1
                 status_box.write("🧠 AI Step 1: 正在提取关键数据...")
-                prompt_1 = STEP_1_PROMPT_TEMPLATE.format(category=report_category)
+                prompt_1 = config.STEP_1_PROMPT_TEMPLATE.format(category=report_category)
                 raw_data = call_ai_and_wait_generic(prompt_1, pdf_text)
     
                 if not raw_data:
@@ -268,7 +268,7 @@ with tab1:
     
                 # C. AI Step 2
                 status_box.write("✍️ AI Step 2: 正在进行格式化、缩写和标红...")
-                prompt_2 = STEP_2_PROMPT_TEMPLATE.format(category=report_category)
+                prompt_2 = config.STEP_2_PROMPT_TEMPLATE.format(category=report_category)
                 step1_str = json.dumps(raw_data, indent=2, ensure_ascii=False)
                 final_json = call_ai_and_wait_generic(prompt_2, step1_str)
     
@@ -498,6 +498,7 @@ with tab2:
                 st.markdown(f"**🤖 模型: `{record['model']}`** ⏱️ 时间: {record['time']}")
                 st.code(record['content'], language="text")
                 st.divider() # 每条记录之间加一条分割线
+
 
 
 
