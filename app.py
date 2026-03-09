@@ -90,7 +90,121 @@ def parse_ai_json(raw_response):
 
 # ----------------------------------------
 
-if generate_btn and uploaded_pdf:
+
+def call_ai_and_wait_generic(system_prompt, user_content, model_name=None):
+    """
+    调用 AI API
+    model_name: 模型名称，如果为None则使用默认的 AI_MODEL_NAME
+    """
+    if model_name is None:
+        model_name = config.AI_MODEL_NAME
+        
+    token = get_token()
+    if not token: return None
+
+    full_prompt = f"{system_prompt}\n\n=== INPUT DATA ===\n{user_content}"
+    url = f"{config.API_BASE_URL}/job"
+    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
+    
+    payload = {
+        "type": "callLlm",
+        "metadata": config.API_METADATA,
+        "input": {"parameter": {"model_name": model_name, "prompt": full_prompt}}
+    }
+
+    try:
+        print(f"🚀 提交 AI 任务 (模型: {model_name})...")
+        resp = requests.post(url, headers=headers, json=payload, timeout=30)
+        if resp.status_code != 200:
+            print(f"❌ 提交失败: {resp.text}")
+            return None
+        
+        job_id = resp.json().get("id") or resp.json().get("uuid")
+        print(f"⏳ 等待 AI (ID: {job_id})...")
+
+        for i in range(60): 
+            time.sleep(2)
+            check_url = f"{config.API_BASE_URL}/job/JOB_ID/{job_id}"
+            check_resp = requests.get(check_url, headers=headers)
+            
+            if check_resp.status_code == 200:
+                res = check_resp.json()
+                status = res.get("status")
+                if status in ["SUCCESS", "COMPLETED"]:
+                    print("✅ AI 完成！")
+                    return clean_json(res.get("output") or res.get("result"))
+                elif status == "FAILED":
+                    return None
+    except Exception as e:
+        print(f"❌ 异常: {e}")
+        return None
+
+def clean_json(raw_input):
+    text = ""
+    if isinstance(raw_input, dict):
+        text = raw_input.get("content") or raw_input.get("output") or raw_input.get("result")
+        if not text:
+            if "header_info" in raw_input or "meta" in raw_input: return raw_input
+            text = json.dumps(raw_input)
+    else:
+        text = str(raw_input)
+
+    if text:
+        text = re.sub(r'```json\s*', '', text)
+        text = re.sub(r'```\s*', '', text)
+    
+    start, end = text.find('{'), text.rfind('}')
+    if start != -1 and end != -1:
+        try: return json.loads(text[start : end + 1])
+        except: pass
+    return None
+
+# Streamlit 界面主程序
+# ==============================================================================
+st.set_page_config(page_title="AI 研报生成器", page_icon="📄", layout="wide")
+if "summary_history" not in st.session_state:
+    st.session_state.summary_history = []
+st.title("📄 AI 智能研报生成器")
+st.markdown("上传 PDF -> AI 提取分析 -> 生成标准化 Word 报告或中文摘要")
+
+
+# --- 功能模式选择 ---
+tab1, tab2 = st.tabs(["📋 标准报告生成", "📝 摘要生成"])
+
+# ============== TAB 1: 标准报告生成 ==============
+with tab1:
+    st.subheader("标准报告生成")
+    
+    # --- ⚙️ 报告配置区 ---
+    st.markdown("#### ⚙️ 报告配置")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        user_name = st.text_input("用户名称 (User Name)", value="Charlotte")
+        
+    with col2:
+        report_category = st.selectbox(
+            "报告类别 (Category)",
+            ("Equity", "Macro", "FX&Commodities","Weekly Fund Flow"),
+            index=0
+        )
+        
+    with col3:
+        # 新增：模型选择下拉框 (默认选中第一个)
+        selected_model_tab1 = st.selectbox("🤖 AI 模型 (Model)", AVAILABLE_MODELS, index=6)
+        
+    st.info(f"当前模式: {report_category}\n(Equity 会包含股价评级，其他则隐藏)")
+    
+    st.divider() 
+    
+    # --- 📁 文件上传区 ---
+    st.markdown("#### 📁 上传文件")
+    uploaded_pdf = st.file_uploader("上传 PDF 研报", type=["pdf"], key="standard_pdf")
+    uploaded_image = st.file_uploader("上传图表 (可选，将放在文末)", type=["png", "jpg", "jpeg"], key="standard_image")
+
+    generate_btn = st.button("🚀 开始生成 Word 报告", type="primary", key="standard_btn")
+
+    if generate_btn and uploaded_pdf:
     # 1. 准备工作
     status_box = st.status("正在处理...", expanded=True)
     
@@ -178,206 +292,6 @@ if generate_btn and uploaded_pdf:
     except Exception as e:
         status_box.update(label="❌ 发生错误", state="error")
         st.error(f"Error details: {e}")
-# def call_ai_and_wait_generic(system_prompt, user_content, model_name=None):
-#     """
-#     调用 AI API
-#     model_name: 模型名称，如果为None则使用默认的 AI_MODEL_NAME
-#     """
-#     if model_name is None:
-#         model_name = config.AI_MODEL_NAME
-        
-#     token = get_token()
-#     if not token: return None
-
-#     full_prompt = f"{system_prompt}\n\n=== INPUT DATA ===\n{user_content}"
-#     url = f"{config.API_BASE_URL}/job"
-#     headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
-    
-#     payload = {
-#         "type": "callLlm",
-#         "metadata": config.API_METADATA,
-#         "input": {"parameter": {"model_name": model_name, "prompt": full_prompt}}
-#     }
-
-#     try:
-#         print(f"🚀 提交 AI 任务 (模型: {model_name})...")
-#         resp = requests.post(url, headers=headers, json=payload, timeout=30)
-#         if resp.status_code != 200:
-#             print(f"❌ 提交失败: {resp.text}")
-#             return None
-        
-#         job_id = resp.json().get("id") or resp.json().get("uuid")
-#         print(f"⏳ 等待 AI (ID: {job_id})...")
-
-#         for i in range(60): 
-#             time.sleep(2)
-#             check_url = f"{config.API_BASE_URL}/job/JOB_ID/{job_id}"
-#             check_resp = requests.get(check_url, headers=headers)
-            
-#             if check_resp.status_code == 200:
-#                 res = check_resp.json()
-#                 status = res.get("status")
-#                 if status in ["SUCCESS", "COMPLETED"]:
-#                     print("✅ AI 完成！")
-#                     return clean_json(res.get("output") or res.get("result"))
-#                 elif status == "FAILED":
-#                     return None
-#     except Exception as e:
-#         print(f"❌ 异常: {e}")
-#         return None
-
-def clean_json(raw_input):
-    text = ""
-    if isinstance(raw_input, dict):
-        text = raw_input.get("content") or raw_input.get("output") or raw_input.get("result")
-        if not text:
-            if "header_info" in raw_input or "meta" in raw_input: return raw_input
-            text = json.dumps(raw_input)
-    else:
-        text = str(raw_input)
-
-    if text:
-        text = re.sub(r'```json\s*', '', text)
-        text = re.sub(r'```\s*', '', text)
-    
-    start, end = text.find('{'), text.rfind('}')
-    if start != -1 and end != -1:
-        try: return json.loads(text[start : end + 1])
-        except: pass
-    return None
-
-# Streamlit 界面主程序
-# ==============================================================================
-st.set_page_config(page_title="AI 研报生成器", page_icon="📄", layout="wide")
-if "summary_history" not in st.session_state:
-    st.session_state.summary_history = []
-st.title("📄 AI 智能研报生成器")
-st.markdown("上传 PDF -> AI 提取分析 -> 生成标准化 Word 报告或中文摘要")
-
-
-# --- 功能模式选择 ---
-tab1, tab2 = st.tabs(["📋 标准报告生成", "📝 摘要生成"])
-
-# ============== TAB 1: 标准报告生成 ==============
-with tab1:
-    st.subheader("标准报告生成")
-    
-    # --- ⚙️ 报告配置区 ---
-    st.markdown("#### ⚙️ 报告配置")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        user_name = st.text_input("用户名称 (User Name)", value="Charlotte")
-        
-    with col2:
-        report_category = st.selectbox(
-            "报告类别 (Category)",
-            ("Equity", "Macro", "FX&Commodities","Weekly Fund Flow"),
-            index=0
-        )
-        
-    with col3:
-        # 新增：模型选择下拉框 (默认选中第一个)
-        selected_model_tab1 = st.selectbox("🤖 AI 模型 (Model)", AVAILABLE_MODELS, index=6)
-        
-    st.info(f"当前模式: {report_category}\n(Equity 会包含股价评级，其他则隐藏)")
-    
-    st.divider() 
-    
-    # --- 📁 文件上传区 ---
-    st.markdown("#### 📁 上传文件")
-    uploaded_pdf = st.file_uploader("上传 PDF 研报", type=["pdf"], key="standard_pdf")
-    uploaded_image = st.file_uploader("上传图表 (可选，将放在文末)", type=["png", "jpg", "jpeg"], key="standard_image")
-
-    generate_btn = st.button("🚀 开始生成 Word 报告", type="primary", key="standard_btn")
-
-    if generate_btn and uploaded_pdf:
-        # 1. 准备工作
-        status_box = st.status("正在处理...", expanded=True)
-        
-        try:
-            # A. 读取 PDF
-            status_box.write("📄 正在读取 PDF 内容...")
-            pdf_text = extract_pdf_text(uploaded_pdf)
-            
-            if not pdf_text:
-                status_box.update(label="❌ PDF 读取失败或为空", state="error")
-                st.stop()
-
-            # B. AI Step 1
-            status_box.write("🧠 AI Step 1: 正在提取关键数据...")
-            prompt_1 = config.STEP_1_PROMPT_TEMPLATE.format(category=report_category)
-            raw_data = call_ai_and_wait_generic(prompt_1, pdf_text,model_name=selected_model_tab1)
-            
-            if not raw_data:
-                status_box.update(label="❌ 第一步 AI 分析失败", state="error")
-                st.stop()
-            
-            # C. AI Step 2
-            status_box.write("✍️ AI Step 2: 正在进行格式化、缩写和标红...")
-            prompt_2 = config.STEP_2_PROMPT_TEMPLATE.format(category=report_category)
-            step1_str = json.dumps(raw_data, indent=2, ensure_ascii=False)
-            final_json = call_ai_and_wait_generic(prompt_2, step1_str, model_name=selected_model_tab1)
-            
-            
-            if not final_json:
-                status_box.update(label="❌ 第二步 AI 格式化失败", state="error")
-                st.stop()
-
-            # D. 后处理 (日期 & 类别)
-            today_str = datetime.now().strftime("%Y/%m/%d")
-            if "header_info" in final_json:
-                final_json["header_info"]["date"] = today_str
-                final_json["header_info"]["category"] = report_category
-
-            # E. 生成文件名
-            # 获取原文件名 (去除后缀)
-            original_filename = os.path.splitext(uploaded_pdf.name)[0]
-            # 获取银行缩写
-            institution = raw_data.get("meta", {}).get("institution", "Unknown")
-            bank_acronym = get_bank_acronym(institution)
-            # 拼接
-            final_filename = f"{report_category}_{user_name}_{bank_acronym}_{original_filename}.docx"
-            final_filename = final_filename.replace(" ", "_").replace("/", "-") # 清洗非法字符
-
-            # F. 处理图片
-            img_temp_path = None
-            if uploaded_image:
-                img_temp_path = f"temp_{uploaded_image.name}"
-                with open(img_temp_path, "wb") as f:
-                    f.write(uploaded_image.getbuffer())
-                status_box.write(f"🖼️ 已加载图片: {uploaded_image.name}")
-
-            # G. 生成 Word
-            status_box.write("💾 正在生成 Word 文档...")
-            generator = DocGenerator()
-            output_docx_path = f"temp_{final_filename}" # 临时保存
-            
-            generator.create_styled_doc(final_json, output_docx_path, img_path=img_temp_path)
-            
-            # H. 完成
-            status_box.update(label="✅ 生成成功！", state="complete", expanded=False)
-            
-            # 显示下载按钮
-            with open(output_docx_path, "rb") as f:
-                file_bytes = f.read()
-                st.download_button(
-                    label=f"⬇️ 下载报告: {final_filename}",
-                    data=file_bytes,
-                    file_name=final_filename,
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                )
-                
-            # 清理临时文件
-            if os.path.exists(output_docx_path): os.remove(output_docx_path)
-            if img_temp_path and os.path.exists(img_temp_path): os.remove(img_temp_path)
-
-        except Exception as e:
-            status_box.update(label="❌ 发生未知错误", state="error")
-            st.error(f"Error details: {e}")
-
-    elif generate_btn and not uploaded_pdf:
-        st.warning("请先上传 PDF 文件！")
 
 # ============== TAB 2: 摘要生成 ==============
 with tab2:
@@ -545,6 +459,7 @@ with tab2:
                 st.markdown(f"**🤖 模型: `{record['model']}`** ⏱️ 时间: {record['time']}")
                 st.code(record['content'], language="text")
                 st.divider() # 每条记录之间加一条分割线
+
 
 
 
