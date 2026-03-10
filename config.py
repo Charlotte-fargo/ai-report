@@ -23,7 +23,7 @@ API_BASE_URL = "https://api-v2.easyview.xyz/v3/ai"
 CLIENT_ID = st.secrets["CLIENT_ID"]
 CLIENT_SECRET = st.secrets["CLIENT_SECRET"]
 # AI 模型名称
-AI_MODEL_NAME = "deepseek-r1"
+AI_MODEL_NAME = "gemini-3-pro-preview"
 # 摘要生成专用模型（中文内容生成）
 SUMMARY_MODEL_NAME = "gemini-3-pro-preview"
 
@@ -285,6 +285,7 @@ User will also provide a Report Link ID.
   "link": "[https://news.fargowealth.com/?id=](https://news.fargowealth.com/?id=){provided_id}&feature=1&viewChannelId=4&rootOrgId=1"
 }
 """
+
 
 
 
