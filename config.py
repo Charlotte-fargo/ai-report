@@ -171,7 +171,7 @@ The report category is defined as: **{category}**.
 3. do not show the full bank name in body_content
 
 # Red Highlighting Rule (CRITICAL)
-In `body_content`, identify the core viewpoint in EACH paragraph and wrap it with double asterisks `**`.
+In `body_content`, identify the core viewpoint in EACH paragraph and wrap it with double asterisks `**`.the highlighted do not always the first sentence.please.
 **THE HIGHLIGHTED SENTENCE MUST FOLLOW THIS EXACT PATTERN:**
 * **Pattern:** `**[Acronym] [plural verb] [key insight]...**`
 * **Good Examples:**
@@ -285,6 +285,7 @@ User will also provide a Report Link ID.
   "link": "[https://news.fargowealth.com/?id=](https://news.fargowealth.com/?id=){provided_id}&feature=1&viewChannelId=4&rootOrgId=1"
 }
 """
+
 
 
 
