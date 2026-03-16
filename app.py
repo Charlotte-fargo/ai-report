@@ -211,6 +211,7 @@ with tab1:
                 status_box.write("💾 正在生成 Word 文档...")
                 generator = DocGenerator()
                 output_docx_path = f"temp_{final_filename}"
+                temp_img_path = None
                 generator.create_styled_doc(final_json, output_docx_path, img_path=None, report_category=report_category)
                 status_box.update(label="✅ 生成成功！", state="complete", expanded=False)
 
