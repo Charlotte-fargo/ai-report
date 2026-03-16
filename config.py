@@ -158,21 +158,30 @@ The user has defined this report category as: **{category}**.
 # 步骤 2: 编辑
 STEP_2_PROMPT_TEMPLATE = """
 # Role
-You are a Strict Financial Editor. Reformat extracted data into a specific JSON schema.再次强调，summary必须是80字
-body_content should between 400-500 words, and including 4-5 paragraphs，title should be the bank viewpoints, not the operation，summary should around 80 words,If category is **Equity** the summary words should be 70 words，再次强调，summary必须是70字
+You are a Strict Financial Editor. Reformat extracted data into a specific JSON schema.
+
 # USER INSTRUCTION
 The report category is defined as: **{category}**.
- **Price Target Format:**
-    -   MUST include Currency (HKD, USD, RMB).
-    -   Must ensure If a **Previous Target** exists (if obviously mentioned), put it in parentheses: `(Previous Price Target: XX.00)`.if not do not show the Previous Price Target,keep two decimals (if obviously mentioned).
-    -   If both HKD and USD targets exist, join with `/`.
+**Word Count & Structure Rules:**
+- The `summary` MUST be strictly between 60 to 70 words. If the category is **Equity**, the summary MUST be exactly 70 words. Check the word count before generating the final output.
+- The `body_content` should be between 400-500 words, consisting of 4-5 paragraphs.
+- The `title` should reflect the bank's core viewpoints, not operational updates.
+
+**Price Target Format:**
+- MUST include Currency (HKD, USD, RMB).
+- If a **Previous Target** exists (if obviously mentioned), put it in parentheses: `(Previous Price Target: XX.00)`. Keep two decimals. If not mentioned, do NOT show the Previous Price Target.
+- If both HKD and USD targets exist, join with `/`.
+
 # STRICT RULES
 1.  **Bank Acronyms:** Use Acronyms (JPM, GS, MS, DB, CITICS) in `summary` and `body_content`.
 2.  **Grammar:** Treat acronyms as **PLURAL** (e.g., "JPM **expect**").
-3. do not show the full bank name in body_content
+3.  Do not show the full bank name in `body_content`.
 
 # Red Highlighting Rule (CRITICAL)
-In `body_content`, identify the core viewpoint in EACH paragraph and wrap it with double asterisks `**`.the highlighted do not always the first sentence.please.
+In `body_content`, identify the core viewpoint in EACH paragraph and wrap it with double asterisks `**`. 
+
+**POSITIONING RULE:** The highlighted sentence must flow NATURALLY within the paragraph. It can be the FIRST, MIDDLE, or LAST sentence. **You MUST vary the position of the highlighted sentence across different paragraphs** so the text reads dynamically and organically, not mechanically. Keep the key sentences concise.
+
 **THE HIGHLIGHTED SENTENCE MUST FOLLOW THIS EXACT PATTERN:**
 * **Pattern:** `**[Acronym] [plural verb] [key insight]...**`
 * **Good Examples:**
@@ -180,38 +189,36 @@ In `body_content`, identify the core viewpoint in EACH paragraph and wrap it wit
     * `**GS estimate a 20% upside in FY26 earnings.**`
     * `**DB highlight that the valuation is attractive.**`
 * **Bad Examples (DO NOT DO THIS):**
-    * `**They expect...**` (Do not use 'They' inside `**`)
-    * `**The revenue will grow...**` (Must start with the Bank Name)
-    * `**JPM expects...**` (Must be plural verb)
+    * `**They expect...**` (Do not use pronouns like 'They' inside `**`)
+    * `**The revenue will grow...**` (Must start with the Bank Name Acronym)
+    * `**JPM expects...**` (Must use a plural verb)
 
 # JSON Structure Rules based on Category: **{category}**
 -   **If {category} == 'Equity':** You MUST fill in `stock`, `rating`, `price_target`.
 -   **If {category} != 'Equity':** You MUST leave `stock`, `rating`, `price_target` as **EMPTY STRINGS** ("").
-再次强调，summary必须是70字，生成完summary请核对字数。
+
 # Output Schema (JSON Only)
 {{
   "header_info": {{
     "category": "Wall Street Highlights-{category}",
     "date": "YYYY/MM/DD",
-    "title": "[Full Bank Name]: [Title of the Report]should including stock(ticker.country for example,China Mobile(941.HK) Stock(ticker) Only appear once。ticker must be right after "stock"  )", 
-    "summary": "[Acronym] [plural verb]... (min 60 words,max 70 words, If **Equity** the summary words should be 70 words)",
+    "title": "[Full Bank Name]: [Title of the Report] (Must include stock ticker format exactly once, e.g., China Mobile(941.HK))", 
+    "summary": "[Acronym] [plural verb]... (Strictly 60-70 words; exactly 70 words if Equity)",
     "tags": "Generate 3 relevant Chinese tags separated by `/` (e.g., 消费/港股/电子)",
     "stock": "Ticker string (e.g. 9988.HK / BABA.US) OR Empty",
     "rating": "Rating OR Empty",
-    "price_target": "Formatted Price String (e.g. HKD100.00 (Previous Price Target: HKD80.00)),keep two decimals, (if obviously mentioned). if previous price not mention in report content, you do not need to show the Previous"，
-    "category": "Wall Street Highlights-{category}"
+    "price_target": "Formatted Price String (e.g. HKD100.00 (Previous Price Target: HKD80.00)). Only include Previous if mentioned."
   }},
   "body_content": [
-    "Paragraph 1: Highlight key sentence with `**`.",
-    "Paragraph 2: Highlight key sentence with `**`.",
-    ...
-    ...
-    the key sentence should be their viewpoints, not too loog for key sentences
+    "Paragraph 1 text... **[Acronym] [plural verb] [key insight]...** ...rest of paragraph.",
+    "**[Acronym] [plural verb] [key insight]...** ...rest of paragraph 2 text...",
+    "...Paragraph 3 text... **[Acronym] [plural verb] [key insight]...**",
+    "Paragraph 4 text..."
   ],
   "footer_info": {{
     "stock": "Ticker string (e.g. 9988.HK / BABA.US) OR Empty",
     "rating": "Rating OR Empty",
-    "price_target": "Formatted Price String (e.g. HKD100.00(Previous Price Target: HKD80.00)),keep two decimals"
+    "price_target": "Formatted Price String (e.g. HKD100.00(Previous Price Target: HKD80.00)), keep two decimals"
   }}
 }}
 """
