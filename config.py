@@ -18,10 +18,10 @@ load_dotenv()
 AUTH_URL = "https://auth-v2.easyview.xyz/realms/evhk/protocol/openid-connect/token"
 API_BASE_URL = "https://api-v2.easyview.xyz/v3/ai"
 # AI 服务的专用凭据
-# CLIENT_ID = "cioinsight-api-client"
-# CLIENT_SECRET = "b02fe9e7-36e6-4c81-a389-9399184eda9b"
-CLIENT_ID = st.secrets["CLIENT_ID"]
-CLIENT_SECRET = st.secrets["CLIENT_SECRET"]
+CLIENT_ID = "cioinsight-api-client"
+CLIENT_SECRET = "b02fe9e7-36e6-4c81-a389-9399184eda9b"
+# CLIENT_ID = st.secrets["CLIENT_ID"]
+# CLIENT_SECRET = st.secrets["CLIENT_SECRET"]
 # AI 模型名称
 AI_MODEL_NAME = "deepseek-r1"
 # 摘要生成专用模型（中文内容生成）
@@ -125,6 +125,7 @@ FUND_FLOW_STEP2 = """
 
 
 # --- WSH(Wall Street Highlight) ---
+# --- WSH(Wall Street Highlight) ---
 # 步骤 1: 分析师
 STEP_1_PROMPT_TEMPLATE = """
 # Role
@@ -171,7 +172,7 @@ The report category is defined as: **{category}**.
 3. do not show the full bank name in body_content
 
 # Red Highlighting Rule (CRITICAL)
-In `body_content`, identify the core viewpoint in EACH paragraph and wrap it with double asterisks `**`.
+In `body_content`, identify the core viewpoint in EACH paragraph and wrap it with double asterisks `**`.the highlighted do not always the first sentence.please.
 **THE HIGHLIGHTED SENTENCE MUST FOLLOW THIS EXACT PATTERN:**
 * **Pattern:** `**[Acronym] [plural verb] [key insight]...**`
 * **Good Examples:**
@@ -285,8 +286,6 @@ User will also provide a Report Link ID.
   "link": "[https://news.fargowealth.com/?id=](https://news.fargowealth.com/?id=){provided_id}&feature=1&viewChannelId=4&rootOrgId=1"
 }
 """
-
-
 
 
 
