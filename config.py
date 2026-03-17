@@ -164,8 +164,8 @@ You are a Strict Financial Editor. Reformat extracted data into a specific JSON 
 The report category is defined as: **{category}**.
 **Word Count & Structure Rules:**
 - The `summary` MUST be strictly between 60 to 70 words. If the category is **Equity**, the summary MUST be exactly 70 words. Check the word count before generating the final output.
-- The `body_content` should be between 400-500 words, consisting of 4-5 paragraphs.
-- The `title` should reflect the bank's core viewpoints, not operational updates.
+- The `body_content` must should be between 500-600 words, consisting of 4-5 paragraphs.
+- The `title` should reflect the bank's core viewpoints, not operational updates and should between 7-8 words.
 
 **Price Target Format:**
 - MUST include Currency (HKD, USD, RMB).
