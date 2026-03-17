@@ -164,7 +164,7 @@ You are a Strict Financial Editor. Reformat extracted data into a specific JSON 
 The report category is defined as: **{category}**.
 **Word Count & Structure Rules:**
 - The `summary` MUST be strictly between 60 to 70 words. If the category is **Equity**, the summary MUST be exactly 70 words. Check the word count before generating the final output.
-- The `body_content` must should be between 500-600 words, consisting of 4-5 paragraphs.
+- The `body_content` must should be between 400-700 words, consisting of 4-5 paragraphs.
 - The `title` should reflect the bank's core viewpoints, not operational updates and should between 7-8 words.
 
 **Price Target Format:**
@@ -221,6 +221,7 @@ In `body_content`, identify the core viewpoint in EACH paragraph and wrap it wit
     "price_target": "Formatted Price String (e.g. HKD100.00(Previous Price Target: HKD80.00)), keep two decimals"
   }}
 }}
+Note:- The `body_content` must should be between 400-700 words, consisting of 4-5 paragraphs.
 """
 
 
@@ -294,6 +295,74 @@ User will also provide a Report Link ID.
 }
 """
 
+
+
+# --- 投行精髓汇总 (全行业通用极简架构) ---
+
+# Prompt A: 官方财报提取专家
+PROMPT_A_OFFICIAL = """
+# 角色设定
+你是一位极其严谨的金融分析师。你的任务是阅读目标公司的财报，提取【绝对客观】的历史财务数据。
+
+# 工作流与排版要求（必须严格遵守）
+直接输出以下结构（不要写大标题）：
+
+## 业绩回顾
+（必须使用无序列表“- ”的形式分点列出以下内容,每条分论点必须控制在100个字符：）
+- 第一点：综合概述本季度的总收入及同比增速，毛利润及毛利率表现，以及非IFRS经营利润率的提升情况在50-60个字符。可以是两句话，但必须控制在100个字符内。
+- 第二点：列出资本开支的同比变化及具体金额，自由现金流情况，以及本季度的股份回购金额在100个字符。可以是两句话，但必须控制在100个字符内。
+- 第三点及以后：智能识别该公司的核心业务板块（如增值服务/游戏、营销/广告、金融科技等），分别列出其具体营收金额及同比增速，并保留原文中提到的主要驱动因素在100个字符。可以是两句话，但必须控制在50-60个字符内。
+
+# ⚠️ 绝对禁令
+1. 绝对禁止在“业绩回顾”中提到任何投资银行的名字。
+2. 绝对禁止包含任何预测性数据。必须是财报已发生的客观事实。
+"""
+
+# Prompt B: 单一投行观点提取专家 (自然专业转述口吻)
+PROMPT_B_BANK = """
+# 角色设定
+你是一位专业的投行报告分析师。任务是提炼【特定单一投行】的核心逻辑。
+
+# 强制命名与排版规范（必须严格遵守，否则视为失败）
+1. 投行名称必须使用英文缩写（如 JPM, MS, GS, Citi 等）。
+2. 评级使用中文全称（如超配、买入、增持）。
+3. 目标价格式必须是：HKD[数字] 或 USD[数字]。
+4. 【极度重要】标题行必须原封不动地以 "### " 开头！绝对禁止省略 "#" 号。
+
+直接按照以下格式输出（必须使用“- ”打点分段）：
+
+### [投行缩写] [评级]，目标价HKD[具体数字]
+- [投行缩写]认为/指出，（概述整体观点及对核心战略的看法。第一点必须带投行主语，保留原文的关键定性词汇）。
+- （直接以业务为主语陈述第一大核心主业。说完核心再说以投行为主语说明他的观点，保留具体产品名称及增速预测）。
+- （直接以业务为主语陈述第二大核心业务。完核心再说以投行为主语说明他的观点，如eCPM等及预测数据）。
+- （直接陈述其他业务、利润率或资本开支。可偶尔自然地插入“[投行缩写]预计”调剂语感，但不要刻意）。
+
+**估值**
+- 基于（简明说明估值方法及核心参数，如SOTP、PE倍数等。不需要加投行主语）。
+
+**潜在风险**
+- （精炼罗列该投行提示的第1个风险点）
+- （精炼罗列该投行提示的第2个风险点）
+- （精炼罗列该投行提示的第3个风险点）
+
+# ⚠️ 绝对禁令（极为重要）
+1. 绝对禁止每一段都用“[投行缩写]认为/预计”开头当复读机！除了第一段概述，后面的段落请直接用“游戏收入...”、“广告业务...”等业务词汇作为主语自然展开。
+2. 绝对禁止使用“游戏业务：”或“（1）”这种带符号的小标题前缀，必须是直接陈述的完整句子。
+3. 绝对禁止过度压缩！必须保留原文中的具体产品名、百分比数据和详尽的驱动原因。
+"""
+
+# Prompt C: 终极合成专家
+PROMPT_C_SUMMARY = """
+# 角色设定
+你是一位首席分析师。你的任务是为长篇报告撰写开篇摘要。标题需要控制在25-28字以内。
+
+# 工作流与排版要求
+请阅读提供的综合文本，直接输出以下内容：
+
+# [公司名称及代码]：投行精髓 – [用一句话高度概括核心亮点与投行共识]，标题需要控制在25-28字以内。
+（在这一行直接写一段 150 字左右的总结。第一句话必须概括公司本季度的基本面表现，中间说明核心业务的增长动力，可以说明主要业务的数据，不要提及子业务的数据，最后一句话总结各大投行对公司未来战略的共同看法。行文要连贯，不要打点。绝对禁止在这一段里罗列具体投行的名字，和具体的业务展开细节。）
+
+"""
 
 
 

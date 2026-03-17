@@ -8,6 +8,13 @@ import streamlit as st
 from datetime import datetime
 import config  # 引用你现有的配置文件
 from doc_generator import DocGenerator
+from docx import Document
+from docx.shared import Pt, RGBColor
+from docx.oxml.ns import qn
+from docx.enum.text import WD_ALIGN_PARAGRAPH # 新增：用于控制两端对齐
+import io
+import re
+
 
 # --- WSH(Wall Street Highlight) ---
 STEP_1_PROMPT_TEMPLATE = config.STEP_1_PROMPT_TEMPLATE
@@ -16,6 +23,8 @@ STEP_2_PROMPT_TEMPLATE = config.STEP_2_PROMPT_TEMPLATE
 # --- 资金流周报 (Weekly Fund Flow) ---
 FUND_FLOW_STEP1 = config.FUND_FLOW_STEP1
 FUND_FLOW_STEP2 = config.FUND_FLOW_STEP2
+
+
 
 # 预设模型列表 (供 Tab 2 使用)
 AVAILABLE_MODELS = [config.AI_MODEL_NAME,  "gemini-3-pro-preview","claude-sonnet-4","claude-sonnet-4-5", "gemini-2.5-flash","gemini-2.5-pro", "deepseek-v3.2-exp",
@@ -135,7 +144,10 @@ def clean_json(raw_input):
     if start != -1 and end != -1:
         try: return json.loads(text[start : end + 1])
         except: pass
-    return None
+        
+    # 💡 核心修改：如果解析JSON失败，说明AI返回的是纯文本，那就直接返回这个文本！
+    return text if text else None 
+
 
 # ================= 界面初始化 =================
 
@@ -159,8 +171,10 @@ with st.sidebar:
     )
     st.info(f"当前模式: {report_category}\n(Equity 会包含股价评级，其他则隐藏)")
 
-# 🌟 核心修改点：创建双标签页
-tab1, tab2 = st.tabs(["📝 Word 报告生成", "📑 批量中文摘要生成"])
+
+# 🌟 核心修改点：创建三标签页
+tab1, tab2, tab3 = st.tabs(["📝 Word 报告生成", "📑 批量中文摘要生成", "💎 投行精髓汇总"])
+
 
 # ================= TAB 1: 现有的 Word 报告生成逻辑 =================
 with tab1:
@@ -429,3 +443,187 @@ with tab2:
                 st.markdown(f"**🤖 模型: `{record['model']}`** ⏱️ 时间: {record['time']}")
                 st.code(record['content'], language="text")
                 st.divider()
+
+# ================= TAB 3: 投行精髓汇总生成逻辑 =================
+with tab3:
+    st.subheader("💎 投行精髓汇总生成 (专业分步版)")
+    st.info("📌 架构升级：请分别上传【官方财报】和【各大投行研报】。AI 将先提取绝对准确的财务数据，再逐一深度解析各家投行观点。")
+    st.divider()
+    
+    left_col_t3, right_col_t3 = st.columns([4, 6], gap="large")
+    
+    with left_col_t3:
+        st.markdown("#### ⚙️ 全局配置")
+        selected_model_tab3 = st.selectbox("🤖 选择 AI 模型", AVAILABLE_MODELS, index=0, key="model_tab3_new")
+        company_name = st.text_input("🏢 目标公司名称", placeholder="例如：腾讯控股（0700.HK）")
+        st.write("") 
+        
+        st.markdown("#### 📁 上传文件 (分步上传)")
+        uploaded_official_pdf = st.file_uploader(
+            "1️⃣ 上传公司【官方财报】或新闻稿 PDF (单选)",
+            type=["pdf"],
+            key="wsh_official_pdf"
+        )
+        
+        uploaded_bank_pdfs = st.file_uploader(
+            "2️⃣ 上传各大【投行研报】 PDF (可多选)",
+            type=["pdf"],
+            accept_multiple_files=True,
+            key="wsh_bank_pdfs"
+        )
+        
+        st.write("")
+        generate_wsh_btn = st.button("🚀 开始分步深度生成", type="primary", key="wsh_btn_new", use_container_width=True)
+
+    with right_col_t3:
+        st.markdown("#### ⚙️ 运行状态与结果")
+        
+        
+        if generate_wsh_btn:
+            if not uploaded_official_pdf or not uploaded_bank_pdfs:
+                st.error("❌ 请确保【官方财报】和【投行研报】都已上传文件！")
+            elif not company_name:
+                st.warning("⚠️ 建议填写【目标公司名称】，以免 AI 抓取标题失败。")
+            else:
+                status_msg_t3 = st.empty()
+                detail_msg_t3 = st.empty()
+                progress_bar = st.progress(0)
+                
+                # 存放生成结果的变量
+                part_performance = "" # 业绩回顾
+                part_banks = []       # 投行观点数组
+                
+                # --- 阶段 1：只提炼业绩回顾 ---
+                status_msg_t3.info("📊 阶段 1/3：正在提取【官方财报】硬核数据...")
+                official_text = extract_pdf_text(uploaded_official_pdf)
+                if not official_text:
+                    st.stop()
+                
+                res_a = call_ai_and_wait_generic(config.PROMPT_A_OFFICIAL, f"目标公司：{company_name}\n\n{official_text}", model_name=selected_model_tab3)
+                if res_a: part_performance = str(res_a)
+                progress_bar.progress(0.2)
+                
+                # --- 阶段 2：逐个拆解投行观点 ---
+                status_msg_t3.info("🏦 阶段 2/3：正在逐个解析【投行观点】...")
+                for idx, bank_pdf in enumerate(uploaded_bank_pdfs):
+                    detail_msg_t3.info(f"读取投行报告: {bank_pdf.name}")
+                    bank_text = extract_pdf_text(bank_pdf)
+                    if bank_text:
+                        res_b = call_ai_and_wait_generic(config.PROMPT_B_BANK, f"目标公司：{company_name}\n\n{bank_text}", model_name=selected_model_tab3)
+                        if res_b: part_banks.append(str(res_b))
+                    
+                    progress_bar.progress(0.2 + 0.6 * ((idx + 1) / len(uploaded_bank_pdfs)))
+
+                # --- 阶段 3：画龙点睛（全局摘要生成） ---
+                status_msg_t3.info("👑 阶段 3/3：正在站在上帝视角撰写【主标题与核心摘要】...")
+                detail_msg_t3.info("综合各大投行观点生成共识中...")
+                
+                # 把前两步的内容拼起来喂给 Prompt C
+                synthesis_context = f"目标公司：{company_name}\n\n【已经提取的业绩回顾】\n{part_performance}\n\n【已经提取的各大投行观点】\n" + "\n\n".join(part_banks)
+                
+                part_summary = call_ai_and_wait_generic(config.PROMPT_C_SUMMARY, synthesis_context, model_name=selected_model_tab3)
+                progress_bar.progress(1.0)
+                
+                # --- 终极拼装大一统 ---
+                detail_msg_t3.empty()
+                status_msg_t3.success("✨ 所有步骤处理完毕！正在生成排版文档...")
+                
+                # 完美的顺序：标题与摘要 -> 业绩回顾 -> 各大投行
+                full_report_content = f"{str(part_summary)}\n\n{part_performance}\n\n" + "\n\n".join(part_banks)
+                
+                # 预览框
+                with st.expander("👀 点击预览生成的纯文本内容"):
+                    st.markdown(full_report_content)
+                
+                # ==========================================
+                # 下面的 Word 排版和下载代码与之前保持完全一致
+                               # --- 极致排版：全文等线、11号、两端对齐、特定标红加粗 ---
+                # --- 极致排版：精准空行、大标题居中、全文等线、11号、特定标红 ---
+                doc = Document()
+                for line in full_report_content.split('\n'):
+                    line = line.strip()
+                    
+                    # 忽略 Markdown 自带的杂乱空行，由我们用代码精准控制空行
+                    if not line:
+                        continue
+                    
+                    # 💡 核心逻辑：在“业绩回顾”、“投行标题”、“估值”、“潜在风险”之前，强行插入一个空段落（空一行）
+                    if line.startswith('## ') or line.startswith('### ') or line in ["估值", "潜在风险", "**估值**", "**潜在风险**", "估值：", "潜在风险："]:
+                        doc.add_paragraph()
+                        
+                    p = doc.add_paragraph()
+                    
+                    # 1. 拦截主标题 (#) -> 居中、加粗、后续空一行
+                    if line.startswith('# '):
+                        p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER # 强制居中对齐
+                        clean_title = line.replace('# ', '').strip()
+                        run = p.add_run(clean_title)
+                        run.bold = True
+                        run.font.color.rgb = RGBColor(0, 0, 0)
+                        doc.add_paragraph() # 主标题写完后，立刻在下方空一行 (留给概括)
+                        
+                    # 2. 拦截业绩回顾 (##) -> 加粗、两端对齐
+                    elif line.startswith('## '):
+                        p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                        clean_title = line.replace('## ', '').strip()
+                        run = p.add_run(clean_title)
+                        run.bold = True
+                        run.font.color.rgb = RGBColor(0, 0, 0)
+                        
+                    # 3. 拦截投行标题 (###) -> 标红、加粗、两端对齐
+                    elif line.startswith('### '):
+                        p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                        clean_title = line.replace('### ', '').strip()
+                        run = p.add_run(clean_title)
+                        run.bold = True
+                        run.font.color.rgb = RGBColor(192, 0, 0) # 保持深红色
+                        
+                    # 4. 拦截估值与潜在风险标签 -> 加粗、两端对齐
+                    elif line in ["估值", "潜在风险", "**估值**", "**潜在风险**", "估值：", "潜在风险："]:
+                        p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                        clean_text = line.replace('**', '').strip()
+                        run = p.add_run(clean_text)
+                        run.bold = True
+                        run.font.color.rgb = RGBColor(0, 0, 0)
+                        
+                    # 5. 处理正文及列表分论点 -> 两端对齐
+                    else:
+                        is_list_item = line.startswith('- ') or line.startswith('* ') or line.startswith('·')
+                        if is_list_item:
+                            # 去掉列表前缀，使用 Word 原生的项目符号
+                            clean_line = line.replace('- ', '', 1).replace('* ', '', 1).replace('·', '', 1).strip()
+                            p.style = 'List Bullet' 
+                            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                        else:
+                            clean_line = line
+                            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                        
+                        # 处理句子中间可能加粗的重点词汇
+                        parts = re.split(r'(\*\*.*?\*\*)', clean_line)
+                        for part in parts:
+                            if part.startswith('**') and part.endswith('**'):
+                                run = p.add_run(part[2:-2])
+                                run.bold = True
+                                run.font.color.rgb = RGBColor(0, 0, 0)
+                            else:
+                                run = p.add_run(part)
+                                run.font.color.rgb = RGBColor(0, 0, 0)
+                
+                # 👑 终极格式覆盖：锁定等线和 11 号字（不碰对齐和颜色）
+                for paragraph in doc.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.name = 'DengXian'
+                        run._element.rPr.rFonts.set(qn('w:eastAsia'), '等线')
+                        run.font.size = Pt(11)
+
+                word_buffer = io.BytesIO()
+                doc.save(word_buffer)
+                word_buffer.seek(0)
+                
+                st.download_button(
+                    label="⬇️ 下载排版好的 Word (.docx) 汇总报告",
+                    data=word_buffer,
+                    file_name=f"投行精髓_{company_name}_{datetime.now().strftime('%Y%m%d')}.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    type="primary"
+                )
