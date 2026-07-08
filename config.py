@@ -4,9 +4,25 @@ import requests
 import os
 from dotenv import load_dotenv
 import streamlit as st
+import sentry_sdk
 # ==============================================================================
 # 加载 .env 文件中的变量
 load_dotenv()
+
+# ==============================================================================
+# 0. Sentry 配置
+# ==============================================================================
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
+
+SENTRY_AUTH_TOKEN = os.getenv("SENTRY_AUTH_TOKEN", "")
+SENTRY_ORG = os.getenv("SENTRY_ORG", "")
+SENTRY_PROJECT = os.getenv("SENTRY_PROJECT", "")
 
 # ==============================================================================
 # Web 界面访问密码
