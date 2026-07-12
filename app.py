@@ -500,6 +500,11 @@ from datetime import datetime
 import config  # 引用你现有的配置文件
 from doc_generator import DocGenerator
 
+import sentry_sdk
+sentry_dsn = os.getenv("SENTRY_DSN", "")
+if sentry_dsn:
+    sentry_sdk.init(dsn=sentry_dsn, traces_sample_rate=0.1, profiles_sample_rate=0.1)
+
 # --- WSH(Wall Street Highlight) ---
 # 步骤 1: 分析师
 STEP_1_PROMPT_TEMPLATE = config.STEP_1_PROMPT_TEMPLATE
@@ -545,6 +550,8 @@ def extract_pdf_text(path):
         return full_text
     except Exception as e:
         print(f"❌ 读取 PDF 失败: {e}")
+        if sentry_dsn:
+            sentry_sdk.capture_exception(e)
         return None
 
 def get_token():
@@ -555,6 +562,8 @@ def get_token():
         return resp.json().get('access_token')
     except Exception as e:
         print(f"❌ Token 获取失败: {e}")
+        if sentry_dsn:
+            sentry_sdk.capture_exception(e)
         return None
 
 def call_ai_and_wait_generic(system_prompt, user_content):
@@ -583,7 +592,7 @@ def call_ai_and_wait_generic(system_prompt, user_content):
 
         for i in range(60): 
             time.sleep(2)
-            check_url = f"{config.API_BASE_URL}/job/JOB_ID/{job_id}"
+            check_url = f"{config.API_BASE_URL}/job/{job_id}"
             check_resp = requests.get(check_url, headers=headers)
 
             if check_resp.status_code == 200:
@@ -596,6 +605,8 @@ def call_ai_and_wait_generic(system_prompt, user_content):
                     return None
     except Exception as e:
         print(f"❌ 异常: {e}")
+        if sentry_dsn:
+            sentry_sdk.capture_exception(e)
         return None
 
 def clean_json(raw_input):
@@ -614,8 +625,11 @@ def clean_json(raw_input):
 
     start, end = text.find('{'), text.rfind('}')
     if start != -1 and end != -1:
-        try: return json.loads(text[start : end + 1])
-        except: pass
+        try:
+            return json.loads(text[start : end + 1])
+        except json.JSONDecodeError as e:
+            if sentry_dsn:
+                sentry_sdk.capture_exception(e)
     return None
 
 # Streamlit 界面主程序
@@ -672,20 +686,18 @@ if generate_btn and uploaded_pdf:
             status_box.write("✍️ Step 2: 执行【市场动态】翻译标准...")
             final_json = call_ai_and_wait_generic(FUND_FLOW_STEP2, json.dumps(raw_data))
             print(final_json)
+            if not final_json:
+                status_box.update(label="❌ AI 生成失败", state="error")
+                st.stop()
             if report_category == "Weekly Fund Flow":
-            # 强制二次确认：除了指定的三个字段，其余全部清空或保持原样
                 allowed_keys = ["title", "summary", "body_content", "date", "from", "language"]
                 header = final_json.get("header_info", {})
                 for key in header.keys():
                     if key.lower() not in allowed_keys:
-                        header[key] = "" # 确保不属于 fund flow 的字段绝对为空
+                        header[key] = ""
 
-            # 构造文件名 (资金流通常用机构名或固定格式)
-            bank_acronym = "GS" # 默认为高盛，或者从 raw_data 里提取
+            bank_acronym = "GS"
             final_filename = f"WeeklyFlow_{user_name}_{bank_acronym}_{datetime.now().strftime('%Y%m%d')}.docx"
-            if not final_json:
-                status_box.update(label="❌ AI 生成失败", state="error")
-                st.stop()
 
             # 3. 后处理与生成文档
             today_str = datetime.now().strftime("%Y/%m/%d")
